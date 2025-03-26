@@ -9,7 +9,7 @@ local Scene = {
     Visible = true,          -- A Scene only renders when it's visible
     MasterCanvas = nil,      -- The final canvas rendered to the screen
     Camera = Camera.new(),   -- Created in constructor
-    DrawSize = V{640, 360},-- Created in constructor
+    DrawSize = V{1920, 1080},-- Created in constructor
 
     -- internal properties
     _super = "Object",      -- Supertype
