@@ -58,6 +58,33 @@ local function pickStringChar(str)
     end
 end
 
+local lfs = love.filesystem
+
+function _G.makeDir(filepath)
+    local pathParts = {}
+    
+    -- Normalize path separators and split by "/"
+    for part in filepath:gmatch("([^/\\]+)") do
+        table.insert(pathParts, part)
+    end
+
+    -- Remove the last part (file name), assuming the last is a file
+    table.remove(pathParts)
+
+    local currentPath = ""
+    for _, part in ipairs(pathParts) do
+        currentPath = currentPath .. part .. "/"
+        if not lfs.getInfo(currentPath, "directory") then
+            local success = lfs.createDirectory(currentPath)
+            if not success then
+                error("Failed to create directory: " .. currentPath)
+            end
+        end
+    end
+
+    return filepath
+end
+
 local charList = {["'"] = {"'", "'"}, ['"'] = {'"', '"'}, ["[["] = {"[[", "]]"}}
 local function makeStringString(str)
     local pick = charList[pickStringChar(str)]

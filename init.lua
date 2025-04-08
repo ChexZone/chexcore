@@ -60,10 +60,11 @@ function Chexcore.Update(dt)
     for i, tab in ipairs(Chexcore._recordingCanvases) do
         tab[1] = tab[1] + 1
 
-        tab[3]._drawable:newImageData():encode("png", tab[4] .. tostring(tab[1]) .. ".png")
+        print(tab)
+        tab[3]._drawable:newImageData():encode("png", makeDir(tab[4] .. "/" .. tostring(tab[1]) .. ".png"))
 
         if tab[1] == tab[2] then
-            table.remove(tab, i)
+            table.remove(Chexcore._recordingCanvases, i)
         end
     end
 end
