@@ -13,6 +13,7 @@ _G.Chexcore = {
     _globalUpdates = {},    -- for any types that want independent update control
     _priorityGlobalUpdates = {},    -- for any types that want to update before globalUpdates do
     _globalDraws = {},      -- for any types that want independent draw control
+    _recordingCanvases = {},    -- a container for any Canvas recorded with Canvas:Record(); ordered list items in format {progress, numFrames, canvas, outputPath}
 
     -- constants
     MAX_TABLE_OUTPUT_INDENT = 30, -- how many layers deep tostring() will expand a table into.
@@ -54,6 +55,16 @@ function Chexcore.Update(dt)
 
     for _, func in ipairs(Chexcore._globalUpdates) do
         func(dt)
+    end
+
+    for i, tab in ipairs(Chexcore._recordingCanvases) do
+        tab[1] = tab[1] + 1
+
+        tab[3]._drawable:newImageData():encode("png", tab[4] .. tostring(tab[1]) .. ".png")
+
+        if tab[1] == tab[2] then
+            table.remove(tab, i)
+        end
     end
 end
 
@@ -180,6 +191,10 @@ function Chexcore.UnmountScene(scene)
     return false
 end
 
+function Chexcore.RecordCanvas(canvas, numFrames, outputPath)
+    Chexcore._recordingCanvases[#Chexcore._recordingCanvases+1] = {0, numFrames, canvas, outputPath}
+end
+
 local fps = 0
 Chexcore.FrameLimit = 500
 local frameTime = 0
@@ -303,6 +318,8 @@ function love.run()
         -- if mode == "web" then start_time = Chexcore._preciseClock end
     end
 end
+
+
 ------------------------------------------------
 
 

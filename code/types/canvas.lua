@@ -88,4 +88,8 @@ function Canvas:Clone()
     return clone
 end
 
+function Canvas:Record(numFrames, outputPath)
+    Chexcore.RecordCanvas(self, numFrames, outputPath)
+end
+
 return Canvas
