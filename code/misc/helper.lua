@@ -502,6 +502,7 @@ if replaceCoreLuaFunctions then
     _G.tostring = ctostring
 end
  
+ 
 function _G.isObject(t)
     return type(t) == "table" and t._type and true or false
 end
@@ -528,6 +529,7 @@ function _G.filteredListIterator(self, arg1, arg2, children)
 
 
     if not (arg1 or arg2) then  -- get entire set
+        local i = 1; local nest; local prevObjects = {}
         local i = 1; local nest; local prevObjects = {}
         if children then
             return function ()
