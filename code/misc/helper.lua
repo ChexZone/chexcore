@@ -501,7 +501,7 @@ if replaceCoreLuaFunctions then
     end
     _G.tostring = ctostring
 end
-
+ 
 function _G.isObject(t)
     return type(t) == "table" and t._type and true or false
 end
@@ -528,22 +528,29 @@ function _G.filteredListIterator(self, arg1, arg2, children)
 
 
     if not (arg1 or arg2) then  -- get entire set
-        local i = 0; local nest
+        local i = 1; local nest; local prevObjects = {}
         if children then
             return function ()
                 if nest then
                     local res = nest()
                     if res then return res else nest = nil end
                 end
-                i = i + 1
+                if prevObjects[self[i]] then
+                    repeat i = i + 1 until not prevObjects[self[i]]
+                end
                 if isObject(self[i]) and self[i]:HasChildren() then
                     nest = self[i]:EachDescendant(arg1, arg2, true)
                 end
+                prevObjects[self[i] or false] = true
                 return self[i]
             end
         else
             return function()
-                i = i + 1
+                if prevObjects[self[i]] then
+                    repeat i = i + 1 until not prevObjects[self[i]]
+                end
+                prevObjects[self[i] or false] = true
+
                 return self[i]
             end
         end
@@ -569,7 +576,7 @@ function _G.filteredListIterator(self, arg1, arg2, children)
             
             -- exclusive
             --print(self, children)
-            local i = 0; local nest
+            local i = 1; local nest; local prevObjects = {}
             return function()
                 
                 if nest then
@@ -578,11 +585,14 @@ function _G.filteredListIterator(self, arg1, arg2, children)
                 end
                 
                 while STOP - i > 0 do
-                    
-                    i = i + 1
+                    if prevObjects[self[i]] then
+                        repeat i = i + 1 until not prevObjects[self[i]]
+                    end
+
                     if children and isObject(self[i]) and self[i]:HasChildren() then                        
                         nest = self[i]:EachDescendant(arg1, arg2, true)
                     end
+
                     local c = self[i]
                     if not c then return nil end
                     local match = true
@@ -591,7 +601,11 @@ function _G.filteredListIterator(self, arg1, arg2, children)
                             match = false; break
                         end
                     end
-                    if match then return c end
+
+                    if match then
+                        prevObjects[c] = true
+                        return c
+                    end
 
                     if nest then
                         local res = nest()
@@ -601,7 +615,7 @@ function _G.filteredListIterator(self, arg1, arg2, children)
             end
         else
             -- inclusive
-            local i = 0; local nest
+            local i = 1; local nest; local prevObjects = {}
             return function()
                 
                 if nest then
@@ -609,7 +623,9 @@ function _G.filteredListIterator(self, arg1, arg2, children)
                     if res then return res else nest = nil end
                 end
                 while STOP - i > 0 do
-                    i = i + 1
+                    if prevObjects[self[i]] then
+                        repeat i = i + 1 until not prevObjects[self[i]]
+                    end
                     if children and isObject(self[i]) and self[i]:HasChildren() then
                         nest = self[i]:EachDescendant(arg1, arg2, true)
                     end
@@ -621,7 +637,12 @@ function _G.filteredListIterator(self, arg1, arg2, children)
                             match = true; break
                         end
                     end
-                    if match then return c end
+                    if match then
+                        prevObjects[c] = true
+                        return c
+                    else
+                        i = i + 1
+                    end
                     if nest then
                         local res = nest()
                         if res then return res else nest = nil end
@@ -633,25 +654,36 @@ function _G.filteredListIterator(self, arg1, arg2, children)
         -- filteredListIterator( func, arg )
         
         
-        local i = 0; local nest
+        local i = 1; local nest; local prevObjects = {}
         return function()
+            
             if nest then
                 local res = nest()
                 if res then return res else nest = nil end
             end
             while STOP - i > 0 do
-                i = i + 1
+                
+                if prevObjects[self[i]] then
+                    repeat i = i + 1 until not prevObjects[self[i]]
+                end
+                
                 if children and isObject(self[i]) and self[i]:HasChildren() then
+                    
                     nest = self[i]:EachDescendant(arg1, arg2, true)
                 end
                 local c = self[i]
                 if not c then return nil end
-
+                
                 if arg1(c, arg2) then
+                    
+                    prevObjects[c] = true
                     return c
+                else
+                    i = i + 1
                 end
 
                 if nest then
+                    
                     local res = nest()
                     if res then return res else nest = nil end
                 end
@@ -660,21 +692,26 @@ function _G.filteredListIterator(self, arg1, arg2, children)
     elseif arg2 ~= nil then
         -- filteredListIterator( property, value )
         
-        local i = 0; local nest
+        local i = 1; local nest; local prevObjects = {}
         return function()
             if nest then
                 local res = nest()
                 if res then return res else nest = nil end
             end
             while STOP - i > 0 do
-                i = i + 1
+                if prevObjects[self[i]] then
+                    repeat i = i + 1 until not prevObjects[self[i]]
+                end
                 if children and isObject(self[i]) and self[i]:HasChildren() then
                     nest = self[i]:EachDescendant(arg1, arg2, true)
                 end
                 local c = self[i]
                 if not c then return nil end
                 if c[arg1] == arg2 then
+                    prevObjects[c] = true
                     return c
+                else
+                    i = i + 1
                 end
 
                 if nest then
