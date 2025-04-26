@@ -88,6 +88,16 @@ function Canvas:Clone()
     return clone
 end
 
+function Canvas:CopyFrom(other, shader)
+    self._drawable:renderTo(function ()
+        if shader then shader:Activate() end
+        love.graphics.clear()
+        love.graphics.setColor(1,1,1)
+        love.graphics.draw(other._drawable, 0, 0)
+        if shader then shader:Deactivate() end
+    end)
+end
+
 function Canvas:Record(numFrames, outputPath)
     Chexcore.RecordCanvas(self, numFrames, outputPath)
 end

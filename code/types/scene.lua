@@ -112,20 +112,26 @@ function Scene:CombineLayers()
     for layer in self:EachChild() do
         if layer.Canvases then
             if layer.Shader then layer.Shader:Activate() end
-            for _, canvas in ipairs(layer.Canvases) do
+            local canvasPool
+            if layer.FinalCanvas then
+                canvasPool = {layer.FinalCanvas} 
+            else
+                canvasPool = layer.Canvases
+            end
+            for _, canvas in ipairs(canvasPool) do
                 -- canvases[#canvases+1] = canvas
                         -- by default, we'll just stretch each Canvas to fit the MasterCanvas. 
             -- maybe make this a property later ?
-            local zoomInfluence = layer.Static and 0 or layer.ZoomInfluence
-            canvas:DrawToScreen(
-                masterCanvasSize.X/2,
-                masterCanvasSize.Y/2, 0,
-                masterCanvasSize.X + masterCanvasSize.X * (self.Camera.Zoom-1) * zoomInfluence,
-                masterCanvasSize.Y + masterCanvasSize.Y * (self.Camera.Zoom-1) * zoomInfluence,
-                0.5, 0.5
-            )
-            if layer.Shader then layer.Shader:Deactivate() end
+                local zoomInfluence = layer.Static and 0 or layer.ZoomInfluence
+                canvas:DrawToScreen(
+                    masterCanvasSize.X/2,
+                    masterCanvasSize.Y/2, 0,
+                    masterCanvasSize.X + masterCanvasSize.X * (self.Camera.Zoom-1) * zoomInfluence,
+                    masterCanvasSize.Y + masterCanvasSize.Y * (self.Camera.Zoom-1) * zoomInfluence,
+                    0.5, 0.5
+                )
             end
+            if layer.Shader then layer.Shader:Deactivate() end
         end
     end
 
@@ -138,6 +144,5 @@ Scene.AddLayer = Object.Adopt
 Scene.RemoveLayer = Object.Disown
 Scene.SwapLayers = Object.SwapChildOrder
 Scene.GetLayer = Object.GetChild
-
 
 return Scene
