@@ -56,10 +56,7 @@ function Layer:Draw(tx, ty)
         if self.AutoClearCanvas then
             lg.clear()
         end
-        
     end
-
-
     
     -- love.graphics.setColor(1,1,1,1)
     -- love.graphics.rectangle("fill", 0, 0, 1920,1080)

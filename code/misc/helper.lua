@@ -541,7 +541,7 @@ function _G.filteredListIterator(self, arg1, arg2, children)
                 if isObject(self[i]) and self[i]:HasChildren() then
                     nest = self[i]:EachDescendant(arg1, arg2, true)
                 end
-                prevObjects[self[i] or false] = true
+                if self[i] then prevObjects[self[i]] = true end
                 return self[i]
             end
         else

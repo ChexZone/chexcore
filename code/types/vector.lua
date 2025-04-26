@@ -83,6 +83,23 @@ _G.HSV = Vector.HSV
 
 
 
+
+function Vector.Hex(h, o)
+    -- strip leading ‘#’
+    h = h:sub(1,1) == "#" and h:sub(2) or h
+    -- only expand if it’s exactly 3 hex digits
+    if #h == 3 then
+        -- every digit duplicated
+        h = h:gsub("^(%x)(%x)(%x)$", "%1%1%2%2%3%3")
+    end
+    -- parse R, G, B and normalize to 0–1
+    local r = tonumber(h:sub(1,2),16) / 255
+    local g = tonumber(h:sub(3,4),16) / 255
+    local b = tonumber(h:sub(5,6),16) / 255
+    -- build vector and add the extra axis (alpha) if requested
+    return V{r, g, b}:AddAxis(o or 1)
+end
+
 -- SET A METATABLE FOR VECTOR FOR __call
 setmetatable(Vector, {
     __call = function (_, vec)
