@@ -310,7 +310,7 @@ function love.run()
             if mode == "web" then
                 waitTime = waitTime / 4
             end
-            love.timer.sleep(waitTime + Chexcore._frameDelay)
+            -- love.timer.sleep(waitTime + Chexcore._frameDelay)
         end
 
         Chexcore._cpuTime = (end_time - start_time)
