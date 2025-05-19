@@ -205,6 +205,8 @@ local start_time = 0
 
 local windows = nestVideo and nestVideo.getFramebuffers()
 
+
+
 function love.run()
     if love.load then love.load(love.arg.parseGameArguments(arg), arg) end
 
@@ -215,7 +217,7 @@ function love.run()
 
     -- Main loop time.
     return function()
-        Chexcore._preciseClock = love.timer.getTime()
+        -- Chexcore._preciseClock = love.timer.getTime()
 
         -- if mode ~= "web" then
             start_time = Chexcore._preciseClock
@@ -234,19 +236,34 @@ function love.run()
             end
         end
 
+        
+        local frameLimit = (Chexcore._scenes[1] and Chexcore._scenes[1].FrameLimit) or Chexcore.FrameLimit
+
+
+
+        local now = love.timer.getTime()
+
+        
+        local frame_time = 1 / (_G.TRUE_FPS or frameLimit)
+        
+        -- drift-compensated sleep
+        if now < Chexcore._preciseClock then
+            love.timer.sleep(Chexcore._preciseClock - now + Chexcore._frameDelay)
+            now = love.timer.getTime() -- update after sleep
+        end
+        Chexcore._frameDelay = 0
         -- Update dt, as we'll be passing it to update
         if love.timer then dt = love.timer.step() end
 
         Chexcore._lastFrameTime = dt
         
-        local frameLimit = (Chexcore._scenes[1] and Chexcore._scenes[1].FrameLimit) or Chexcore.FrameLimit
 
         -- if mode == "web" then frameLimit = frameLimit * 1.4 end
 
         -- Call update and draw
         frameTime = frameTime + dt
 
-        if frameTime >= 1/frameLimit and love.graphics and love.graphics.isActive() then
+        -- if frameTime >= 1/frameLimit and love.graphics and love.graphics.isActive() then
             frameTime = frameTime - 1/frameLimit
 
             if love.update then
@@ -296,27 +313,31 @@ function love.run()
             
 
             love.graphics.present()
-        end
+        -- end
 
+        -- new target based on updated TRUE_FPS
+        frame_time = 1 / (_G.TRUE_FPS or frameLimit)
+        Chexcore._preciseClock = now + frame_time
 
+        ---------------------------------------------------------------------------------
+        -- local timeToWait = _G.TRUE_FPS and 1/_G.TRUE_FPS or 1/frameLimit
+        -- -- local frameOverTime = dt - timeToWait --math.max(dt - timeToWait, 0)
         
-        local timeToWait = _G.TRUE_FPS and 1/_G.TRUE_FPS or 1/frameLimit
-        -- local frameOverTime = dt - timeToWait --math.max(dt - timeToWait, 0)
-        
-        local end_time = love.timer.getTime()
+        -- local end_time = love.timer.getTime()
 
-        if love.timer then
-            local waitTime = timeToWait - (end_time - start_time)
-            if mode == "web" then
-                waitTime = waitTime / 4
-            end
-            -- love.timer.sleep(waitTime + Chexcore._frameDelay)
-        end
+        -- if love.timer then
+        --     local waitTime = timeToWait - (end_time - start_time)
+        --     if mode == "web" then
+        --         waitTime = waitTime / 4
+        --     end
+        --     love.timer.sleep(waitTime + Chexcore._frameDelay)
+        -- end
 
-        Chexcore._cpuTime = (end_time - start_time)
-        Chexcore._frameDelay = 0
+        -- Chexcore._cpuTime = (end_time - start_time)
+        -- Chexcore._frameDelay = 0
 
-        -- if mode == "web" then start_time = Chexcore._preciseClock end
+        -- -- if mode == "web" then start_time = Chexcore._preciseClock end
+        -----------------------------------------------------------------------------------
     end
 end
 
