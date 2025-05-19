@@ -145,5 +145,4 @@ Scene.RemoveLayer = Object.Disown
 Scene.SwapLayers = Object.SwapChildOrder
 Scene.GetLayer = Object.GetChild
 
-
 return Scene
