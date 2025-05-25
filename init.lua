@@ -210,6 +210,9 @@ local windows = nestVideo and nestVideo.getFramebuffers()
 function love.run()
     if love.load then love.load(love.arg.parseGameArguments(arg), arg) end
 
+    collectgarbage("setpause", 80)
+    collectgarbage("setstepmul", 100)
+
     -- We don't want the first frame's dt to include time taken by love.load.
     if love.timer then love.timer.step() end
 
