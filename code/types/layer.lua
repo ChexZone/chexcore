@@ -179,9 +179,9 @@ end
 
 local function renderSort(a, b)
     if a.ZIndex ~= b.ZIndex then
-        return a.ZIndex > b.ZIndex
+        return a.ZIndex < b.ZIndex
     else
-        return a._propID > b._propID
+        return a._propID < b._propID
     end
 end
 
