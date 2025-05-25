@@ -1,3 +1,4 @@
+_G.CURRENT_PROP_ID = 0
 local Prop = {
     -- properties
     Name = "Prop",
@@ -13,7 +14,9 @@ local Prop = {
     Active = true,          -- whether or not the Prop's :Update() method is called
     Solid = false,          -- is the object collidable?
     Anchored = true,        -- follows its Parent ?
+    ZIndex = 0,
 
+    _propID = -1,
     
 
     Texture = Texture.new("chexcore/assets/images/square.png"),    -- default sample texture
@@ -49,6 +52,7 @@ function Prop.new(properties)
     newProp.Color = rg(newProp, "Color") or V{ Prop.Color.X, Prop.Color.Y, Prop.Color.Z, Prop.Color.A }
     newProp.AnchorPoint = rg(newProp, "AnchorPoint") or V{ Prop.AnchorPoint.X, Prop.AnchorPoint.Y }
     newProp.DrawScale = rg(newProp, "DrawScale") or V{ Prop.DrawScale.X, Prop.DrawScale.Y }
+    newProp._propID = _G.CURRENT_PROP_ID; _G.CURRENT_PROP_ID = _G.CURRENT_PROP_ID + 1
 
     return newProp
 end
@@ -282,6 +286,19 @@ function Prop:CollisionInfo(other)
     return false
 end
 local collisionInfo = Prop.CollisionInfo
+
+function Prop:MoveTo(x, y)
+    if y then
+        -- Prop:MoveTo(x, y)
+        self.Position[1] = x
+        self.Position[2] = y
+    else
+        -- Prop:MoveTo(vec)
+        self.Position[1] = x[1]
+        self.Position[2] = x[2]
+    end
+    self:GetLayer():SetPartitions(self)
+end
 
 function Prop.GetHitFace(hDist, vDist, usingItWrong)
     if usingItWrong then

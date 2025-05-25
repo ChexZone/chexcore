@@ -387,7 +387,21 @@ function Object:Adopt(child)
 
     child._parent = self
 
+    -- When a child is Adopt()ed, send an Adoption signal up the hierarchy so that if something like a Layer needs to know, it does:
+    self:SignalAdoption(child)
+
+    -- and make sure to also signal any of the descendants:
+    for descendant in child:EachDescendant() do
+        self:SignalAdoption(descendant)
+    end
+
     return child
+end
+
+function Object:SignalAdoption(child)
+    if self._parent then -- send it up the chain
+        self._parent:SignalAdoption(child)
+    end
 end
 
 -- inverse of Adopt()

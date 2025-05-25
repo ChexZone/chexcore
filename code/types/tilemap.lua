@@ -150,6 +150,7 @@ local Tilemap = {
 
 Tilemap._priorityGlobalUpdate = function (dt)
     for tilemap, _ in pairs(Tilemap._cache) do
+        
         if tilemap._hasParallaxObjectLayers or tilemap.Position ~= tilemap._trackingOldPos then
             local camTilemapDist = tilemap:GetLayer():GetParent().Camera.Position - tilemap:GetPoint(0,0)
             
@@ -476,6 +477,12 @@ local function getSelfInfo(self, ss)
     return sLeftEdge,sRightEdge,sTopEdge,sBottomEdge
 end
 
+local d90 = math.rad(90)
+function Tilemap:GetPoint(x, y)
+    local v1 = Vector.FromAngle(self.Rotation) * ((self.Size.X * self.TileSize) * (x - self.AnchorPoint.X))
+    local v2 = Vector.FromAngle(self.Rotation + d90) * ((self.Size.Y * self.TileSize) * (y - self.AnchorPoint.Y))
+    return self.Position + v1 + v2
+end
 
 function Tilemap:CollisionInfo(other, preference)
     local tilemapSize = self.Size*self.TileSize*self.Scale
