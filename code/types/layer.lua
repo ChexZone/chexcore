@@ -174,19 +174,21 @@ local sort = table.sort
 local posCompareX = function(a, b)
     return a.Position[1] < b.Position[1]
 end
-function Layer:GetCollisionCandidates(arg1, arg2, arg3)
-    local tlx, tly, brx, bry, sortFunc
+function Layer:GetCollisionCandidates(arg1, arg2, arg3, arg4)
+    local tlx, tly, brx, bry, sortFunc, globalCandidates
     if arg1:IsA("Vector") then
-        -- Layer:GetCollisionCandidates(topLeft, bottomRight, sortFunc)
+        -- Layer:GetCollisionCandidates(topLeft, bottomRight, sortFunc, globalCandidates)
         tlx, tly = self:PartitionCoordAt(arg1[1], arg1[2])
         brx, bry = self:PartitionCoordAt(arg2[1], arg2[2])
         sortFunc = arg3 or posCompareX
+        globalCandidates = arg4
     else
-        -- Layer:GetCollisionCandidates(child, sortFunc)
+        -- Layer:GetCollisionCandidates(child, sortFunc, globalCandidates)
         self:SetPartitions(arg1) -- for good measure;
         tlx, tly = arg1._partitionTLX or 0, arg1._partitionTLY or 0
         brx, bry = arg1._partitionBRX or 0, arg1._partitionBRY or 0
         sortFunc = arg2 or posCompareX
+        globalCandidates = arg3
     end
 
     
@@ -203,6 +205,10 @@ function Layer:GetCollisionCandidates(arg1, arg2, arg3)
                 end
             end
         end
+    end
+
+    if globalCandidates then
+        candidates = union(candidates, globalCandidates)
     end
 
     sort(candidates, sortFunc)
@@ -260,7 +266,7 @@ function Layer:Draw(tx, ty)
         
         
         -- for _, renderTable in ipairs{self:GetCollisionCandidates(V{tx - ofs.X, ty - ofs.Y}, V{tx + ofs.X, ty + ofs.Y}, renderSort), self._ignoreCullingList} do
-            for i, prop in ipairs(union(self._ignoreCullingList, self:GetCollisionCandidates(V{tx - ofs.X, ty - ofs.Y}, V{tx + ofs.X, ty + ofs.Y}, renderSort))) do
+            for i, prop in ipairs(self:GetCollisionCandidates(V{tx - ofs.X, ty - ofs.Y}, V{tx + ofs.X, ty + ofs.Y}, renderSort, self._ignoreCullingList)) do
             
                 if prop.Visible then
                     
