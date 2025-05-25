@@ -12,6 +12,10 @@ local Layer = {
                            -- when false, the Layer will use old Chexcore handoff-style render order, where Props call Draw() methods on their own children.
                            -- when  true, the Layer will cull offscreen objects, then sort by the ZIndex then PropID. Similar, but not quite the same.
 
+    OverlayShaders = {},    -- set in constructor. An ordered list of the names of shaders.
+    ShaderQueue = {},   -- set in constructor. Every frame this should be reset with any fields meant to send to any shaders.
+    ShaderCache = {},   -- set in constructor. A dict of names to Shader objects.
+                           
     Screen = "left",
 
     _collisionPartitionSize = 150, -- how many pixels (width*height) make up a square collision partition. 
@@ -19,10 +23,12 @@ local Layer = {
                                    -- So in theory, this value should be smaller the more densely packed objects are.
 
     _collisionPartitions = {},     -- hashtable of used partitions. Created in constructor.
+    _ignoreCullingList = {}, -- objects in this list will be drawn regardless of render culling
 
 
     -- internal properties
     _delayedDrawcalls = {}, -- created in constructor
+    _delayedDrawcallsShader = {}, -- created in constructor
     _super = "Object",      -- Supertype
     _global = true
 }
@@ -44,7 +50,8 @@ function Layer.new(properties, width, height, static)
     newLayer.Static = static or newLayer.Static
     -- newLayer.Canvases = newLayer.Canvases or {}
     newLayer._delayedDrawcalls = {}
-
+    newLayer._delayedDrawcallsShader = {}
+    newLayer._ignoreCullingList = {}
 
     -- set up the collision partition container. new partitions are automatically generated when queried the first time
     newLayer._collisionPartitions = setmetatable({}, {
@@ -66,8 +73,34 @@ function Layer:Update(dt)
     end
 end
 
+function Layer:EnqueueShaderData(shaderName, valueName, ...)
+    self.ShaderQueue[shaderName] = self.ShaderQueue[shaderName] or {}
+    self.ShaderQueue[shaderName][valueName] = self.ShaderQueue[shaderName][valueName] or {}
+    local p = self.ShaderQueue[shaderName][valueName]
+    for _, v in ipairs{...} do
+        p[#p+1] = v
+    end
+end
+
+function Layer:SetShaderData(shaderName, valueName, ...)
+    self.ShaderQueue[shaderName] = self.ShaderQueue[shaderName] or {}
+    self.ShaderQueue[shaderName][valueName] = {...}
+end
+
+function Layer:GetShaderData(shaderName, valueName)
+    if not self.ShaderQueue[shaderName] then
+        return nil
+    end
+    if not self.ShaderQueue[shaderName][valueName] then
+        return nil
+    end
+    return unpack(self.ShaderQueue[shaderName][valueName])
+end
 
 function Layer:SignalAdoption(child)
+    if child.IgnoreCulling then
+        self._ignoreCullingList[#self._ignoreCullingList+1] = child
+    end
     self:SetPartitions(child)
     return Object.SignalAdoption(self, child)
 end
@@ -226,24 +259,35 @@ function Layer:Draw(tx, ty)
         local ofs = self.Canvases[1]:GetSize()
         
         
-
-        for i, prop in ipairs(self:GetCollisionCandidates(V{tx - ofs.X, ty - ofs.Y}, V{tx + ofs.X, ty + ofs.Y}, renderSort)) do
-            if prop.Visible then
-                if prop.DrawInForeground then
-                    self:DelayDrawCall(prop.ZIndex or 0, prop.Draw, prop, tx, ty, true)
-                else
-                    prop:Draw(tx, ty)
+        -- for _, renderTable in ipairs{self:GetCollisionCandidates(V{tx - ofs.X, ty - ofs.Y}, V{tx + ofs.X, ty + ofs.Y}, renderSort), self._ignoreCullingList} do
+            for i, prop in ipairs(union(self._ignoreCullingList, self:GetCollisionCandidates(V{tx - ofs.X, ty - ofs.Y}, V{tx + ofs.X, ty + ofs.Y}, renderSort))) do
+            
+                if prop.Visible then
+                    
+                    if prop.DrawOverShaders then
+                        
+                        self:DelayDrawCallUntilAfterShaders(prop.ZIndex or 0, prop.Draw, prop, tx, ty, true)
+                    elseif prop.DrawInForeground then
+                        
+                        self:DelayDrawCall(prop.ZIndex or 0, prop.Draw, prop, tx, ty, true)
+                    else
+                        prop:Draw(tx, ty)
+                    end
                 end
             end
-        end
+        -- end
+        
 
-
-    ----------------------------------------------------------- OLD STYLE (NO CULLING) --------------------------------------------------
     else
+    ----------------------------------------------------------- OLD STYLE (NO CULLING) --------------------------------------------------
+    
         -- loop through each Visible child
         for child in self:EachChild() do
             if child.Visible then
-                if child.DrawInForeground then
+                if child.DrawOverShaders then
+                    
+                    self:DelayDrawCallUntilAfterShaders(child.ZIndex or 0, child.Draw, child, tx, ty, true)
+                elseif child.DrawInForeground then
                     self:DelayDrawCall(child.ZIndex or 0, child.Draw, child, tx, ty, true)
                 else
                     child:Draw(tx, ty)
@@ -264,23 +308,66 @@ function Layer:Draw(tx, ty)
     end
     ----------------------------------------------------------------------------------------------------------------------------------------
 
-        -- catch any DelayDrawCall calls
-        local delayedCallsList = {}
-        for priority in pairs(self._delayedDrawcalls) do
-            delayedCallsList[#delayedCallsList+1] = priority
-        end
-        table.sort(delayedCallsList)
+    -- catch any DelayDrawCall calls
+    local delayedCallsList = {}
+    for priority in pairs(self._delayedDrawcalls) do
+        delayedCallsList[#delayedCallsList+1] = priority
+    end
+    table.sort(delayedCallsList)
 
+    for _, priority in ipairs(delayedCallsList) do
+        local callPairs = self._delayedDrawcalls[priority]
+        for i = 1, #callPairs, 2 do
+            callPairs[i](unpack(callPairs[i+1]))
+        end
+    end
+
+
+    self._delayedDrawcalls = {}
+    if self.Canvases then self.Canvases[1]:Deactivate() end
+
+    if #self.OverlayShaders > 0 then
+        self.Canvases[2] = self.Canvases[2] or self.Canvases[1]:Clone()
+        self.FinalCanvas = self.Canvases[1]
+        self.HelperCanvas = self.Canvases[2]
+
+        for _, shader in ipairs(self.OverlayShaders) do
+            -- load shader into cache if not loaded yet
+            self.ShaderCache[shader] = type(self.ShaderCache[shader]) == "string" and Shader.new(self.ShaderCache[shader]) or self.ShaderCache[shader]
+
+            if self.ShaderQueue[shader] then
+                -- send any relevant data to the shader:
+                for extern, val in pairs(self.ShaderQueue[shader]) do
+                    self.ShaderCache[shader]:Send(extern, unpack(val))
+                end
+            end
+            self.ShaderCache[shader]:Activate()
+            self.HelperCanvas:CopyFrom(self.FinalCanvas)
+            self.ShaderCache[shader]:Deactivate()
+            self.FinalCanvas, self.HelperCanvas = self.HelperCanvas, self.FinalCanvas
+        end
+    end
+
+    -- catch any DelayDrawCallUntilAfterShaders calls
+    delayedCallsList = {}
+    for priority in pairs(self._delayedDrawcallsShader) do
+        delayedCallsList[#delayedCallsList+1] = priority
+    end
+    table.sort(delayedCallsList)
+
+    if #delayedCallsList > 0 then
+        
+        self.FinalCanvas:Activate()
         for _, priority in ipairs(delayedCallsList) do
-            local callPairs = self._delayedDrawcalls[priority]
+            local callPairs = self._delayedDrawcallsShader[priority]
             for i = 1, #callPairs, 2 do
                 callPairs[i](unpack(callPairs[i+1]))
             end
         end
+        self.FinalCanvas:Deactivate()
+    end
 
-
-        self._delayedDrawcalls = {}
-    if self.Canvases then self.Canvases[1]:Deactivate() end
+    self._delayedDrawcallsShader = {}
 end
 
 -- a Prop can choose to delay its drawcall to be drawn after everything else in the Layer
@@ -293,6 +380,15 @@ function Layer:DelayDrawCall(priority, drawFunc, ...)
     priorityTable[#priorityTable+1] = args
 end
 
+-- it can also choose to delay its drawcall until after shaders have already been applied
+function Layer:DelayDrawCallUntilAfterShaders(priority, drawFunc, ...)
+    local args = {...}
+    
+    self._delayedDrawcallsShader[priority] = self._delayedDrawcallsShader[priority] or {}
+    local priorityTable = self._delayedDrawcallsShader[priority]
+    priorityTable[#priorityTable+1] = drawFunc
+    priorityTable[#priorityTable+1] = args
+end
 
 local In = Input
 function Layer:GetMousePosition(canvasID)

@@ -185,6 +185,26 @@ function _G.serialize(tab, upcast)
     return type(result) == "string" and result or nil
 end
 
+function _G.union(...)
+    local seen = {}
+    local out = {}
+    local out_n = 0
+
+    for i = 1, select('#', ...) do
+        local tab = select(i, ...)
+        for j = 1, #tab do
+            local v = tab[j]
+            if not seen[v] then
+                seen[v] = true
+                out_n = out_n + 1
+                out[out_n] = v
+            end
+        end
+    end
+
+    return out
+end
+
 local function getStringBounds(s)
     local i = 1
     local out = {}
