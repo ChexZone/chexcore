@@ -18,7 +18,7 @@ local Layer = {
                            
     Screen = "left",
 
-    _collisionPartitionSize = 150, -- how many pixels (width*height) make up a square collision partition. 
+    _collisionPartitionSize = 250, -- how many pixels (width*height) make up a square collision partition. 
                                    -- Bigger partitions mean less memory footprint, but more CPU usage in densely populated areas.
                                    -- So in theory, this value should be smaller the more densely packed objects are.
 
