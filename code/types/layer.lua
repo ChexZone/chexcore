@@ -101,6 +101,8 @@ function Layer:SignalAdoption(child)
     if child.IgnoreCulling then
         self._ignoreCullingList[#self._ignoreCullingList+1] = child
     end
+    -- print("SIGNAL", self.RenderCulling, child)
+    child._isCulled = self.RenderCulling
     self:SetPartitions(child)
     return Object.SignalAdoption(self, child)
 end
@@ -267,7 +269,6 @@ function Layer:Draw(tx, ty)
         
         -- for _, renderTable in ipairs{self:GetCollisionCandidates(V{tx - ofs.X, ty - ofs.Y}, V{tx + ofs.X, ty + ofs.Y}, renderSort), self._ignoreCullingList} do
             for i, prop in ipairs(self:GetCollisionCandidates(V{tx - ofs.X, ty - ofs.Y}, V{tx + ofs.X, ty + ofs.Y}, renderSort, self._ignoreCullingList)) do
-            
                 if prop.Visible then
                     
                     if prop.DrawOverShaders then

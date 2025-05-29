@@ -89,7 +89,7 @@ function Prop:Draw(tx, ty, isForeground)
     if self.Shader then
         self.Shader:Activate()
     end
-    if self.DrawOverChildren and self:HasChildren() then
+    if not self._isCulled and self.DrawOverChildren and self:HasChildren() then
         self:DrawChildren(tx, ty)
     end
     lg.setColor(self.Color)
@@ -104,7 +104,7 @@ function Prop:Draw(tx, ty, isForeground)
         self.AnchorPoint[1],
         self.AnchorPoint[2]
     )
-    if not self.DrawOverChildren and self:HasChildren() then
+    if not self.DrawOverChildren and not self._isCulled and self:HasChildren() then
         self:DrawChildren(tx, ty)
     end
 
@@ -288,7 +288,7 @@ end
 local collisionInfo = Prop.CollisionInfo
 
 function Prop:MoveTo(x, y)
-    if y then
+    if type(y) == "number" then
         -- Prop:MoveTo(x, y)
         self.Position[1] = x
         self.Position[2] = y
