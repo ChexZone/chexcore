@@ -82,6 +82,20 @@ local Tilemap = {
             Top = {Friction = 0.2, Material = "Glass", PreventJump = true, DustColor = V{1,1,1,0}},
             Left = {Material = "Glass"},
             Right = {Material = "Glass"},
+        },
+
+        SpikeLeft = {
+            Right = {CollisionInset = 12, DamageType = "Spike", DamageVelocity = V{3,"y"}},
+            Left = {Passthrough = true},
+            Top = {Passthrough = true},
+            Bottom = {Passthrough = true}
+        },
+
+        SpikeTop = {
+            Right = {Passthrough = true},
+            Left = {Passthrough = true},
+            Top = {CollisionInset = 12, DamageType = "Spike", DamageVelocity = V{"x",-3}},
+            Bottom = {Passthrough = true}
         }
     },
 
@@ -122,6 +136,9 @@ local Tilemap = {
         [403] = "SemisolidBottom",
 
         [214] = "SpringTop",
+
+        [171] = "SpikeLeft",
+        [138] = "SpikeTop",
 
         [7] = "Grass", [8] = "Grass", [9] = "Grass",
 
