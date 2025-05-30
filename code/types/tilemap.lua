@@ -85,8 +85,15 @@ local Tilemap = {
         },
 
         SpikeLeft = {
-            Right = {CollisionInset = 12, DamageType = "Spike", DamageVelocity = V{3,"y"}, DamageStunTimer = 1},
+            Right = {CollisionInset = 12, DamageType = "Spike", DamageVelocity = V{3,"y"}, DamageStunTimer = 0.6},
             Left = {Passthrough = true},
+            Top = {Passthrough = true},
+            Bottom = {Passthrough = true}
+        },
+
+        SpikeRight = {
+            Left = {CollisionInset = 12, DamageType = "Spike", DamageVelocity = V{-3,"y"}, DamageStunTimer = 0.6},
+            Right = {Passthrough = true},
             Top = {Passthrough = true},
             Bottom = {Passthrough = true}
         },
@@ -94,7 +101,7 @@ local Tilemap = {
         SpikeTop = {
             Right = {Passthrough = true},
             Left = {Passthrough = true},
-            Top = {CollisionInset = 12, DamageType = "Spike", DamageVelocity = V{"x",-3}, DamageStunTimer = 1},
+            Top = {CollisionInset = 12, DamageType = "Spike", DamageVelocity = V{"x",-5}, DamageStunTimer = 0.6},
             Bottom = {Passthrough = true}
         }
     },
@@ -138,6 +145,7 @@ local Tilemap = {
         [214] = "SpringTop",
 
         [171] = "SpikeLeft",
+        [169] = "SpikeRight",
         [138] = "SpikeTop",
 
         [7] = "Grass", [8] = "Grass", [9] = "Grass",
