@@ -101,7 +101,7 @@ local Tilemap = {
         SpikeTop = {
             Right = {Passthrough = true},
             Left = {Passthrough = true},
-            Top = {CollisionInset = 12, DamageType = "Spike", DamageVelocity = V{"x",-10}, DamageStunTimer = 0.6},
+            Top = {CollisionInset = 12, DamageType = "Spike", DamageVelocity = V{"x",-3}, DamageStunTimer = 0.6},
             Bottom = {Passthrough = true}
         }
     },

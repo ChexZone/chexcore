@@ -1046,3 +1046,158 @@ function _G.cdrawcircle(mode, x, y, radius)
         drawPoints(x, y)
     end
 end
+
+local curves = {
+    linear = function(t) return t end,
+
+    -- Quadratic
+    inQuad = function(t) return t * t end,
+    outQuad = function(t) return 1 - (1 - t)^2 end,
+    inOutQuad = function(t)
+        return t < 0.5 and 2 * t * t or 1 - (-2 * t + 2)^2 / 2
+    end,
+
+    -- Cubic
+    inCubic = function(t) return t^3 end,
+    outCubic = function(t) return 1 - (1 - t)^3 end,
+    inOutCubic = function(t)
+        return t < 0.5 and 4 * t^3 or 1 - ((-2 * t + 2)^3) / 2
+    end,
+
+    -- Quartic
+    inQuart = function(t) return t^4 end,
+    outQuart = function(t) return 1 - (1 - t)^4 end,
+    inOutQuart = function(t)
+        return t < 0.5 and 8 * t^4 or 1 - ((-2 * t + 2)^4) / 2
+    end,
+
+    -- Quintic
+    inQuint = function(t) return t^5 end,
+    outQuint = function(t) return 1 - (1 - t)^5 end,
+    inOutQuint = function(t)
+        return t < 0.5 and 16 * t^5 or 1 - ((-2 * t + 2)^5) / 2
+    end,
+
+    -- Sine
+    inSine = function(t)
+        return 1 - math.cos((t * math.pi) / 2)
+    end,
+    outSine = function(t)
+        return math.sin((t * math.pi) / 2)
+    end,
+    inOutSine = function(t)
+        return -(math.cos(math.pi * t) - 1) / 2
+    end,
+
+    -- Exponential
+    inExpo = function(t)
+        return t == 0 and 0 or 2^(10 * (t - 1))
+    end,
+    outExpo = function(t)
+        return t == 1 and 1 or 1 - 2^(-10 * t)
+    end,
+    inOutExpo = function(t)
+        if t == 0 then return 0 end
+        if t == 1 then return 1 end
+        return t < 0.5
+            and (2^(20 * t - 10)) / 2
+            or (2 - 2^(-20 * t + 10)) / 2
+    end,
+
+    -- Circular
+    inCirc = function(t)
+        return 1 - math.sqrt(1 - t * t)
+    end,
+    outCirc = function(t)
+        return math.sqrt(1 - (t - 1)^2)
+    end,
+    inOutCirc = function(t)
+        return t < 0.5
+            and (1 - math.sqrt(1 - (2 * t)^2)) / 2
+            or (math.sqrt(1 - (-2 * t + 2)^2) + 1) / 2
+    end,
+}
+
+-- Elastic
+curves.inElastic = function(t)
+    if t == 0 then return 0 end
+    if t == 1 then return 1 end
+    return -2^(10 * t - 10) * math.sin((t * 10 - 10.75) * (2 * math.pi / 3))
+end
+
+curves.outElastic = function(t)
+    if t == 0 then return 0 end
+    if t == 1 then return 1 end
+    return 2^(-10 * t) * math.sin((t * 10 - 0.75) * (2 * math.pi / 3)) + 1
+end
+
+curves.inOutElastic = function(t)
+    if t == 0 then return 0 end
+    if t == 1 then return 1 end
+    t = t * 2
+    if t < 1 then
+        return -0.5 * 2^(10 * t - 10) * math.sin((t * 10 - 11.125) * (2 * math.pi / 4.5))
+    else
+        return 2^(-10 * (t - 1)) * math.sin(((t - 1) * 10 - 11.125) * (2 * math.pi / 4.5)) * 0.5 + 1
+    end
+end
+
+-- Back (overshoots a little)
+curves.inBack = function(t)
+    local c1 = 1.70158
+    return c1 * t^3 - c1 * t^2
+end
+
+curves.outBack = function(t)
+    local c1 = 1.70158
+    t = t - 1
+    return 1 + c1 * t^3 + c1 * t^2
+end
+
+curves.inOutBack = function(t)
+    local c1 = 1.70158 * 1.525
+    t = t * 2
+    if t < 1 then
+        return 0.5 * (t * t * ((c1 + 1) * t - c1))
+    else
+        t = t - 2
+        return 0.5 * (t * t * ((c1 + 1) * t + c1) + 2)
+    end
+end
+
+-- Bounce (literally bounces)
+curves.outBounce = function(t)
+    local n1 = 7.5625
+    local d1 = 2.75
+    if t < 1 / d1 then
+        return n1 * t * t
+    elseif t < 2 / d1 then
+        t = t - 1.5 / d1
+        return n1 * t * t + 0.75
+    elseif t < 2.5 / d1 then
+        t = t - 2.25 / d1
+        return n1 * t * t + 0.9375
+    else
+        t = t - 2.625 / d1
+        return n1 * t * t + 0.984375
+    end
+end
+
+curves.inBounce = function(t)
+    return 1 - curves.outBounce(1 - t)
+end
+
+curves.inOutBounce = function(t)
+    return t < 0.5
+        and (1 - curves.outBounce(1 - 2 * t)) / 2
+        or (1 + curves.outBounce(2 * t - 1)) / 2
+end
+
+function _G.tween(curveType, start, stop, prog)
+    local curve = curves[curveType]
+    if not curve then
+        error("unknown curve type: "..tostring(curveType))
+    end
+    local t = math.clamp and math.clamp(prog, 0, 1) or math.min(math.max(prog, 0), 1)
+    return start + (stop - start) * curve(t)
+end

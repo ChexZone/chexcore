@@ -373,7 +373,7 @@ local types = {
     "chexcore.code.types.scene",
     "chexcore.code.types.layer",
     "chexcore.code.types.canvas",
-    "chexcore.code.types.shader"
+    "chexcore.code.types.shader",
 }
 
 for _, type in ipairs(types) do
