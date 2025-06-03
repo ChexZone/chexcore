@@ -6,7 +6,7 @@ local Particles = {
         Duration = 1,
     },
     
-    RelativePosition = true,
+    RelativePosition = false,
     ParticleAnchorPoint = V{1, 1},   -- AnchorPoint of particles
     ParticlePosition = V{0, 0},
     ParticleVelocity = nil,-- V{0, 0},

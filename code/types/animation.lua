@@ -159,7 +159,7 @@ function Animation:AddCallback(frameNo, callback)
             self._frameCallbacks[v] = callback
         end
     end
-    
+    return self
 end
 
 function Animation:GetSize()
