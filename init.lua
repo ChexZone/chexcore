@@ -7,6 +7,7 @@ _G.Chexcore = {
     _graphicsStats = {},        -- the output of love.graphics.getStats()
 
     _frameDelay = 0,        -- (sec) add to this value to wait extra time before the next frame
+    _skipFrames = 0,
 
     _types = {},            -- stores all type references
     _scenes = {},           -- stores all mounted Scene references
@@ -269,10 +270,15 @@ function love.run()
         -- if frameTime >= 1/frameLimit and love.graphics and love.graphics.isActive() then
             frameTime = frameTime - 1/frameLimit
 
-            if love.update then
-                love.update(1/frameLimit)
+            if Chexcore._skipFrames > 0 then
+                Chexcore._skipFrames = Chexcore._skipFrames - 1
+            else
+                if love.update then
+                    love.update(1/frameLimit)
+                end
+                Chexcore.Update(1/frameLimit)
             end
-            Chexcore.Update(1/frameLimit)
+            print(Chexcore._skipFrames)
 
 
 
