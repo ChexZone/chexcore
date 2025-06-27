@@ -20,6 +20,12 @@ _G.Chexcore = {
     MAX_TABLE_OUTPUT_INDENT = 30, -- how many layers deep tostring() will expand a table into.
 }
 
+local oldrequire = require
+function _G.require(path)
+    _G.__requirePath = path
+    return oldrequire(path)
+end
+
 -- when an Object is indexed, this variable helps keep the referenced up the type chain
 _G.OBJSEARCH = nil
 
@@ -135,6 +141,8 @@ function Chexcore:AddType(type)
 
     -- assume the type may not have a metatable yet
     local metatable = getmetatable(type) or {}
+
+
 
     if type._priorityGlobalUpdate then
         Chexcore._priorityGlobalUpdates[#Chexcore._priorityGlobalUpdates+1] = type._priorityGlobalUpdate

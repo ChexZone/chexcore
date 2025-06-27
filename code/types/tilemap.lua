@@ -745,8 +745,10 @@ function Tilemap.import(tiledPath, atlasPath, properties)
                                     cSpace[fields[#fields]][k2] = v2
                                 end
                             else
+                                
                                 -- filling a property
                                 local fields = k:split("%.")
+                                print(fields[#fields], "fuvk", v)
                                 local cSpace = namespace
                                 for i = 1, #fields-1 do
                                     cSpace[fields[i]] = cSpace[fields[i]] or {}
@@ -759,6 +761,7 @@ function Tilemap.import(tiledPath, atlasPath, properties)
                                     connectionQueue[#connectionQueue+1] = fields[#fields]
                                     connectionQueue[#connectionQueue+1] = v.id
                                 else
+                                    
                                     cSpace[fields[#fields]] = v
                                 end
                                 
