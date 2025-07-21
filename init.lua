@@ -2,7 +2,8 @@ _G.Chexcore = {
     -- internal properties
     _clock = 0,             -- keeps track of total game run time
     _cpuTime = 0,           -- how long (seconds) the last frame took to process
-    _preciseClock = 0,      -- return value of love.timer.getTime()
+    _preciseClock = 0,      -- return value of love.timer.getTime() plus the current frame time
+    _realTime = 0,          -- return value of love.timer.getTime()
     _lastFrameTime = 0,     -- how long the previous frame actually took
     _graphicsStats = {},        -- the output of love.graphics.getStats()
 
@@ -286,7 +287,7 @@ function love.run()
                 end
                 Chexcore.Update(1/frameLimit)
             end
-            print(Chexcore._skipFrames)
+            -- print(Chexcore._skipFrames)
 
 
 
@@ -335,6 +336,7 @@ function love.run()
         -- new target based on updated TRUE_FPS
         frame_time = 1 / (_G.TRUE_FPS or frameLimit)
         Chexcore._preciseClock = now + frame_time
+        Chexcore._realTime = now
 
         ---------------------------------------------------------------------------------
         -- local timeToWait = _G.TRUE_FPS and 1/_G.TRUE_FPS or 1/frameLimit
@@ -374,6 +376,7 @@ local types = {
     "chexcore.code.types.input",
     "chexcore.code.types.ray",
     "chexcore.code.types.sound",
+    "chexcore.code.types.streamSound",
     "chexcore.code.types.texture",
     "chexcore.code.types.animation",
     "chexcore.code.types.font",
