@@ -48,6 +48,8 @@ local Particles = {
     _accelerations = nil,
     _rotAccelerations = nil,
     _sizeAccelerations = nil,
+
+    _customFuncs = nil,
 }
 
 local Chexcore = Chexcore
@@ -183,7 +185,17 @@ local initializers = {
             self._colorVelocities[id*4-1] = dvb
             self._colorVelocities[id*4] = dva
         end
-    end
+    end,
+
+    _customFuncs = function (self)
+        -- initialize "_customFuncs"
+        self._customFuncs = {}
+        
+        -- now EVERY particle needs one:
+        for _, id in ipairs(self._filledSlots) do
+            self._customFuncs[id] = self.ParticleCustomFunc
+        end
+    end,
 }
 
 local updateFuncs = {
@@ -244,7 +256,15 @@ local updateFuncs = {
         local rx = (self._rotAccelerations and self._rotAccelerations[slot] or self.ParticleRotAcceleration) * dt
         
         self._rotVelocities[slot] = self._rotVelocities[slot] + rx
-    end
+    end,
+
+    _customFuncs = function (self, slot, dt)
+        local func = self._customFuncs and self._customFuncs[slot] or self.ParticleCustomFunc
+        if func then
+            -- Call the custom function - it can modify the emitter's properties directly
+            func(self, slot, dt)
+        end
+    end,
 }
 
 function Particles._globalUpdate(dt)
@@ -269,10 +289,11 @@ function Particles._globalUpdate(dt)
 
 
         local usedUpdateFuncs = {} -- a list of update functions we're going to use
+        local customFuncNeeded = false
 
         -- will we be using velocity?
         if (emitter._velocities or emitter.ParticleVelocity) then
-            usedUpdateFuncs["_velocities"] = updateFuncs["_velocities"]
+            usedUpdateFuncs[#usedUpdateFuncs+1] = updateFuncs["_velocities"]
             if not emitter._positions then
                 -- we need to initialize individual positions to use velocity:
                 initializers["_positions"](emitter)
@@ -282,7 +303,7 @@ function Particles._globalUpdate(dt)
         -- will we be using acceleration?
         if (emitter._accelerations or emitter.ParticleAcceleration) then
             
-            usedUpdateFuncs["_accelerations"] = updateFuncs["_accelerations"]
+            usedUpdateFuncs[#usedUpdateFuncs+1] = updateFuncs["_accelerations"]
             if not emitter._velocities then
                 -- we need to initialize individual positions to use velocity:
                 initializers["_velocities"](emitter)
@@ -295,7 +316,7 @@ function Particles._globalUpdate(dt)
 
         -- will we be using sizevelocity?
         if (emitter._sizeVelocities or emitter.ParticleSizeVelocity) then
-            usedUpdateFuncs["_sizeVelocities"] = updateFuncs["_sizeVelocities"]
+            usedUpdateFuncs[#usedUpdateFuncs+1] = updateFuncs["_sizeVelocities"]
             if not emitter._sizes then
                 -- we need to initialize individual sizes to use sizevelocity:
                 initializers["_sizes"](emitter)
@@ -305,7 +326,7 @@ function Particles._globalUpdate(dt)
         -- will we be using sizeacceleration?
         if (emitter._sizeAccelerations or emitter.ParticleSizeAcceleration) then
     
-            usedUpdateFuncs["_sizeAccelerations"] = updateFuncs["_sizeAccelerations"]
+            usedUpdateFuncs[#usedUpdateFuncs+1] = updateFuncs["_sizeAccelerations"]
             if not emitter._sizeVelocities then
                 -- we need to initialize individual positions to use velocity:
                 initializers["_sizeVelocities"](emitter)
@@ -318,7 +339,7 @@ function Particles._globalUpdate(dt)
 
         -- will we be using colorvelocity?
         if (emitter._colorVelocities or emitter.ParticleColorVelocity) then
-            usedUpdateFuncs["_colorVelocities"] = updateFuncs["_colorVelocities"]
+            usedUpdateFuncs[#usedUpdateFuncs+1] = updateFuncs["_colorVelocities"]
             if not emitter._colors then
                 -- we need to initialize individual colors to use colorvelocity:
                 initializers["_colors"](emitter)
@@ -327,7 +348,7 @@ function Particles._globalUpdate(dt)
 
         -- will we be using rotvelocity?
         if (emitter._rotVelocities or emitter.ParticleRotVelocity) then
-            usedUpdateFuncs["_rotVelocities"] = updateFuncs["_rotVelocities"]
+            usedUpdateFuncs[#usedUpdateFuncs+1] = updateFuncs["_rotVelocities"]
             if not emitter._rotations then
                 -- we need to initialize individual rotations to use rotvelocity:
                 initializers["_rotations"](emitter)
@@ -336,7 +357,7 @@ function Particles._globalUpdate(dt)
 
         -- will we be using rotacceleration?
         if (emitter._rotAccelerations or emitter.ParticleRotAcceleration) then
-            usedUpdateFuncs["_rotAccelerations"] = updateFuncs["_rotAccelerations"]
+            usedUpdateFuncs[#usedUpdateFuncs+1] = updateFuncs["_rotAccelerations"]
             if not emitter._rotVelocities then
                 -- we need to initialize individual rotations to use rotvelocity:
                 initializers["_rotVelocities"](emitter)
@@ -347,13 +368,21 @@ function Particles._globalUpdate(dt)
             end
         end
 
+        -- will we be using custom update?
+        if (emitter._customFuncs or emitter.ParticleCustomFunc) then
+            usedUpdateFuncs[#usedUpdateFuncs+1] = updateFuncs["_customFuncs"]
+            if not emitter._customFuncs then
+                initializers["_customFuncs"](emitter)
+            end
+        end
+
         for _, slot in ipairs(emitter._filledSlots) do
             -- lifetime handling
             if emitter._deathTimes[slot] <= emitter._systemLifeTime then
                 emitter:Destroy(slot)
             else
                 -- run only the relevant update functions
-                for funcName, func in pairs(usedUpdateFuncs) do
+                for i, func in ipairs(usedUpdateFuncs) do
                     func(emitter, slot, dt)
                 end
             end
@@ -492,6 +521,14 @@ local funcs = {
 
     LifeTime = function (self, pid, lifetime)
         self._deathTimes[pid] = self._systemLifeTime + lifetime
+    end,
+
+    CustomFunc = function (self, pid, funcToSet)
+        if not self._customFuncs then
+            initializers["_customFuncs"](self)
+        end
+
+        self._customFuncs[pid] = funcToSet
     end
 }
 
@@ -500,7 +537,8 @@ local AUTOFILLS = {
     "_sizeVelocities", "SizeVelocity", "ParticleSizeVelocity",
     "_rotations", "Rotation", "ParticleRotation",
     "_rotVelocities", "RotVelocity", "ParticleRotVelocity",
-    "_colors", "Color", "ParticleColor"
+    "_colors", "Color", "ParticleColor",
+    "_customFuncs", "CustomFunc", "ParticleCustomFunc"
 }
 
 
@@ -631,6 +669,284 @@ function Particles:Draw(tx, ty)
     if self.Shader then
         self.Shader:Deactivate()
     end
+end
+
+-- Particle property getters and setters (methods on emitter)
+
+-- Position methods
+function Particles:GetPosition(slot)
+    if not self._positions then
+        return V{self.ParticlePosition[1], self.ParticlePosition[2]}
+    end
+    return V{self._positions[slot*2-1], self._positions[slot*2]}
+end
+
+function Particles:SetPosition(slot, pos)
+    if not self._positions then
+        initializers["_positions"](self)
+    end
+    self._positions[slot*2-1] = pos[1]
+    self._positions[slot*2] = pos[2]
+end
+
+function Particles:SetPositionX(slot, x)
+    if not self._positions then
+        initializers["_positions"](self)
+    end
+    self._positions[slot*2-1] = x
+end
+
+function Particles:SetPositionY(slot, y)
+    if not self._positions then
+        initializers["_positions"](self)
+    end
+    self._positions[slot*2] = y
+end
+
+-- Velocity methods
+function Particles:GetVelocity(slot)
+    if not self._velocities then
+        return self.ParticleVelocity and V{self.ParticleVelocity[1], self.ParticleVelocity[2]} or V{0, 0}
+    end
+    return V{self._velocities[slot*2-1], self._velocities[slot*2]}
+end
+
+function Particles:SetVelocity(slot, vel)
+    if not self._velocities then
+        initializers["_velocities"](self)
+    end
+    self._velocities[slot*2-1] = vel[1]
+    self._velocities[slot*2] = vel[2]
+end
+
+function Particles:SetVelocityX(slot, vx)
+    if not self._velocities then
+        initializers["_velocities"](self)
+    end
+    self._velocities[slot*2-1] = vx
+end
+
+function Particles:SetVelocityY(slot, vy)
+    if not self._velocities then
+        initializers["_velocities"](self)
+    end
+    self._velocities[slot*2] = vy
+end
+
+-- Acceleration methods
+function Particles:GetAcceleration(slot)
+    if not self._accelerations then
+        return self.ParticleAcceleration and V{self.ParticleAcceleration[1], self.ParticleAcceleration[2]} or V{0, 0}
+    end
+    return V{self._accelerations[slot*2-1], self._accelerations[slot*2]}
+end
+
+function Particles:SetAcceleration(slot, acc)
+    if not self._accelerations then
+        initializers["_accelerations"](self)
+    end
+    self._accelerations[slot*2-1] = acc[1]
+    self._accelerations[slot*2] = acc[2]
+end
+
+function Particles:SetAccelerationX(slot, ax)
+    if not self._accelerations then
+        initializers["_accelerations"](self)
+    end
+    self._accelerations[slot*2-1] = ax
+end
+
+function Particles:SetAccelerationY(slot, ay)
+    if not self._accelerations then
+        initializers["_accelerations"](self)
+    end
+    self._accelerations[slot*2] = ay
+end
+
+-- Size methods
+function Particles:GetSize(slot)
+    if not self._sizes then
+        return V{self.ParticleSize[1], self.ParticleSize[2]}
+    end
+    return V{self._sizes[slot*2-1], self._sizes[slot*2]}
+end
+
+function Particles:SetSize(slot, size)
+    if not self._sizes then
+        initializers["_sizes"](self)
+    end
+    self._sizes[slot*2-1] = size[1]
+    self._sizes[slot*2] = size[2]
+end
+
+function Particles:SetSizeX(slot, sx)
+    if not self._sizes then
+        initializers["_sizes"](self)
+    end
+    self._sizes[slot*2-1] = sx
+end
+
+function Particles:SetSizeY(slot, sy)
+    if not self._sizes then
+        initializers["_sizes"](self)
+    end
+    self._sizes[slot*2] = sy
+end
+
+-- Size velocity methods
+function Particles:GetSizeVelocity(slot)
+    if not self._sizeVelocities then
+        return self.ParticleSizeVelocity and V{self.ParticleSizeVelocity[1], self.ParticleSizeVelocity[2]} or V{0, 0}
+    end
+    return V{self._sizeVelocities[slot*2-1], self._sizeVelocities[slot*2]}
+end
+
+function Particles:SetSizeVelocity(slot, vel)
+    if not self._sizeVelocities then
+        initializers["_sizeVelocities"](self)
+    end
+    self._sizeVelocities[slot*2-1] = vel[1]
+    self._sizeVelocities[slot*2] = vel[2]
+end
+
+function Particles:SetSizeVelocityX(slot, svx)
+    if not self._sizeVelocities then
+        initializers["_sizeVelocities"](self)
+    end
+    self._sizeVelocities[slot*2-1] = svx
+end
+
+function Particles:SetSizeVelocityY(slot, svy)
+    if not self._sizeVelocities then
+        initializers["_sizeVelocities"](self)
+    end
+    self._sizeVelocities[slot*2] = svy
+end
+
+-- Color methods
+function Particles:GetColor(slot)
+    if not self._colors then
+        return V{self.ParticleColor[1], self.ParticleColor[2], self.ParticleColor[3], self.ParticleColor[4] or 1}
+    end
+    return V{self._colors[slot*4-3], self._colors[slot*4-2], self._colors[slot*4-1], self._colors[slot*4]}
+end
+
+function Particles:SetColor(slot, color)
+    if not self._colors then
+        initializers["_colors"](self)
+    end
+    self._colors[slot*4-3] = color[1]
+    self._colors[slot*4-2] = color[2]
+    self._colors[slot*4-1] = color[3]
+    self._colors[slot*4] = color[4] or 1
+end
+
+function Particles:SetColorR(slot, r)
+    if not self._colors then
+        initializers["_colors"](self)
+    end
+    self._colors[slot*4-3] = r
+end
+
+function Particles:SetColorG(slot, g)
+    if not self._colors then
+        initializers["_colors"](self)
+    end
+    self._colors[slot*4-2] = g
+end
+
+function Particles:SetColorB(slot, b)
+    if not self._colors then
+        initializers["_colors"](self)
+    end
+    self._colors[slot*4-1] = b
+end
+
+function Particles:SetColorA(slot, a)
+    if not self._colors then
+        initializers["_colors"](self)
+    end
+    self._colors[slot*4] = a
+end
+
+-- Color velocity methods
+function Particles:GetColorVelocity(slot)
+    if not self._colorVelocities then
+        return self.ParticleColorVelocity and V{self.ParticleColorVelocity[1], self.ParticleColorVelocity[2], self.ParticleColorVelocity[3], self.ParticleColorVelocity[4] or 0} or V{0, 0, 0, 0}
+    end
+    return V{self._colorVelocities[slot*4-3], self._colorVelocities[slot*4-2], self._colorVelocities[slot*4-1], self._colorVelocities[slot*4]}
+end
+
+function Particles:SetColorVelocity(slot, vel)
+    if not self._colorVelocities then
+        initializers["_colorVelocities"](self)
+    end
+    self._colorVelocities[slot*4-3] = vel[1]
+    self._colorVelocities[slot*4-2] = vel[2]
+    self._colorVelocities[slot*4-1] = vel[3]
+    self._colorVelocities[slot*4] = vel[4] or 0
+end
+
+-- Rotation methods
+function Particles:GetRotation(slot)
+    if not self._rotations then
+        return self.ParticleRotation
+    end
+    return self._rotations[slot]
+end
+
+function Particles:SetRotation(slot, rot)
+    if not self._rotations then
+        initializers["_rotations"](self)
+    end
+    self._rotations[slot] = rot
+end
+
+-- Rotation velocity methods
+function Particles:GetRotVelocity(slot)
+    if not self._rotVelocities then
+        return self.ParticleRotVelocity
+    end
+    return self._rotVelocities[slot]
+end
+
+function Particles:SetRotVelocity(slot, rotvel)
+    if not self._rotVelocities then
+        initializers["_rotVelocities"](self)
+    end
+    self._rotVelocities[slot] = rotvel
+end
+
+-- Lifetime methods
+function Particles:GetLifetime(slot)
+    return self._systemLifeTime - self._startTimes[slot]
+end
+
+function Particles:GetMaxLifetime(slot)
+    return self._deathTimes[slot] - self._startTimes[slot]
+end
+
+function Particles:SetMaxLifetime(slot, lifetime)
+    self._deathTimes[slot] = self._startTimes[slot] + lifetime
+end
+
+function Particles:GetStartTime(slot)
+    return self._startTimes[slot]
+end
+
+-- Custom function methods
+function Particles:GetCustomFunc(slot)
+    if not self._customFuncs then
+        return self.ParticleCustomFunc
+    end
+    return self._customFuncs[slot]
+end
+
+function Particles:SetCustomFunc(slot, func)
+    if not self._customFuncs then
+        initializers["_customFuncs"](self)
+    end
+    self._customFuncs[slot] = func
 end
 
 return Particles

@@ -255,6 +255,7 @@ function love.run()
 
 
         local now = love.timer.getTime()
+        Chexcore._realTime = now
 
         
         local frame_time = 1 / (_G.TRUE_FPS or frameLimit)
@@ -336,7 +337,6 @@ function love.run()
         -- new target based on updated TRUE_FPS
         frame_time = 1 / (_G.TRUE_FPS or frameLimit)
         Chexcore._preciseClock = now + frame_time
-        Chexcore._realTime = now
 
         ---------------------------------------------------------------------------------
         -- local timeToWait = _G.TRUE_FPS and 1/_G.TRUE_FPS or 1/frameLimit
