@@ -71,6 +71,24 @@ local Tilemap = {
             }
         },
 
+        HalfTileBottom = {
+            Top = {
+                CollisionInset = 8
+            }
+        },
+
+        HalfTileLeft = {
+            Right = {
+                CollisionInset = 8
+            }
+        },
+
+        HalfTileRight = {
+            Left = {
+                CollisionInset = 8
+            }
+        },
+
         MiniTile = {
             Top = {CollisionInset = 4},
             Bottom = {CollisionInset = 4},
@@ -173,6 +191,70 @@ local Tilemap = {
     _global = true
 }
 
+local bit = require("bit")
+
+local FLIPPED_HORIZONTALLY_FLAG = 0x80000000
+local FLIPPED_VERTICALLY_FLAG   = 0x40000000
+local FLIPPED_DIAGONALLY_FLAG   = 0x20000000
+
+local function decodeGID(gid)
+    local hflip = bit.band(gid, FLIPPED_HORIZONTALLY_FLAG) ~= 0
+    local vflip = bit.band(gid, FLIPPED_VERTICALLY_FLAG) ~= 0
+    local dflip = bit.band(gid, FLIPPED_DIAGONALLY_FLAG) ~= 0
+
+    local mask = bit.bor(FLIPPED_HORIZONTALLY_FLAG, FLIPPED_VERTICALLY_FLAG, FLIPPED_DIAGONALLY_FLAG)
+    local tileId = bit.band(gid, bit.bnot(mask))
+
+    return tileId, hflip, vflip, dflip
+end
+
+-- local function transformInsets(left, right, top, bottom, hflip, vflip, dflip)
+--     -- start with given values
+--     local l, r, t, b = left, right, top, bottom
+
+--     if hflip then
+--         l, r = r, l
+--     end
+--     if vflip then
+--         t, b = b, t
+--     end
+--     if dflip then
+--         -- swap x <-> y insets
+--         l, t = t, l
+--         r, b = b, r
+--     end
+
+--     return l, r, t, b
+-- end
+
+-- tried random logic until it worked lol
+local function transformInsets(left, right, top, bottom, hflip, vflip, dflip)
+    -- start with given values
+    local l, r, t, b = left, right, top, bottom
+
+
+    if dflip then
+        -- swap x <-> y insets
+        l, t = t, l
+        r, b = b, r
+        if hflip then
+            l, r = r, l
+        end
+        if vflip then
+            t, b = b, t
+        end
+    else
+        if hflip then
+            l, r = r, l
+        end
+        if vflip then
+            t, b = b, t
+        end
+    end
+
+    return l, r, t, b
+end
+
 Tilemap._priorityGlobalUpdate = function (dt)
     for tilemap, _ in pairs(Tilemap._cache) do
         
@@ -268,6 +350,17 @@ function Tilemap:DrawChunks(layer)
     end
 end
 
+local transformTable = {
+    [0] = {r = 0, sx = 1, sy = 1}, -- unrotated, unflipped
+    [1] = {r = 0, sx = -1, sy = 1}, -- flipped X
+    [2] = {r = 0, sx = 1, sy = -1}, -- flipped Y
+    [3] = {r = 0, sx = -1, sy = -1}, -- flipped X & Y
+    [4] = {r = -math.rad(90), sx = -1, sy = 1}, -- diagonal flip
+    [5] = {r = -math.rad(90), sx = -1, sy = -1}, -- diagonal + X
+    [6] = {r = -math.rad(90), sx = 1, sy = 1}, -- diagonal + Y
+    [7] = {r = -math.rad(90), sx = 1, sy = -1}, -- diagonal + X + Y
+}
+
 function Tilemap:DrawChunk(layer, x, y)
     x, y, layer = y and x or layer, y or x, y and layer or nil
     for layerID = layer or 1, layer or #self.Layers do
@@ -285,7 +378,11 @@ function Tilemap:DrawChunk(layer, x, y)
                 local tile = self:GetTile(layerID, tx, ty)
                 --print(x,y, tile)
                 if tile and tile > 0 then
-                    cdrawquad(self.Atlas._drawable, self.Tiles[tile], self.TileSize, self.TileSize, (tx-xOfs)*self.TileSize, (ty-yOfs)*self.TileSize, 0, self.TileSize, self.TileSize)
+                    local tileID, hFlip, vFlip, dFlip = decodeGID(tile)
+                    local idx = (hFlip and 1 or 0) + (vFlip and 2 or 0) + (dFlip and 4 or 0)
+                    local transform = transformTable[idx]
+                    
+                    cdrawquad(self.Atlas._drawable, self.Tiles[tileID], self.TileSize, self.TileSize, (tx-xOfs)*self.TileSize + self.TileSize/2, (ty-yOfs)*self.TileSize + self.TileSize/2, transform.r, self.TileSize*transform.sx, self.TileSize*transform.sy, self.TileSize/2, self.TileSize/2)
                 end
             end
         end
@@ -546,7 +643,7 @@ function Tilemap:CollisionInfo(other, preference)
             local realTileX = tilemapSize[1]/self.Size[1]
             local realTileY = tilemapSize[2]/self.Size[2]
             
-            local boxLeft, boxRight, boxTop, boxBottom, tileID
+            local boxLeft, boxRight, boxTop, boxBottom, tile
 
             local storeHit, storeHDist, storeVDist
 
@@ -554,18 +651,35 @@ function Tilemap:CollisionInfo(other, preference)
                 for x = xStart, xEnd do 
                     for y = yStart, yEnd do
 
-                        tileID = self:GetTile(layerID, x, y)
+                        local tileGID = self:GetTile(layerID, x, y)
 
-                        local tileSurface = self.SurfaceInfo[self.TileSurfaceMapping[tileID]] or self._surfaceInfo
                         
 
 
-                        if (tileID or 0) > 0 then
+                        if (tileGID or 0) > 0 then
+
+
+                            local tileID, hFlip, vFlip, dFlip = decodeGID(tileGID)
+                            local tileSurface = self.SurfaceInfo[self.TileSurfaceMapping[tileID]] or self._surfaceInfo
+
+                            -- local leftInset = 
+                            -- local rightInset = 
+                            -- local topInset = 
+                            -- local bottomInset = 
+
+                            local leftInset, rightInset, topInset, bottomInset = transformInsets(
+                                ((tileSurface.Left or self._surfaceInfo.Left).CollisionInset or 0),
+                                ((tileSurface.Right or self._surfaceInfo.Right).CollisionInset or 0),
+                                ((tileSurface.Top or self._surfaceInfo.Top).CollisionInset or 0),
+                                ((tileSurface.Bottom or self._surfaceInfo.Bottom).CollisionInset or 0),
+                                hFlip, vFlip, dFlip
+                            )
+                            
                             -- print(tileID)
-                            boxLeft = realLeftEdge + realTileX * (x-1)     + ((tileSurface.Left or self._surfaceInfo.Left).CollisionInset or 0)
-                            boxRight = realLeftEdge + realTileX * (x)      - ((tileSurface.Right or self._surfaceInfo.Right).CollisionInset or 0)
-                            boxTop = realTopEdge + realTileY * (y-1)       + ((tileSurface.Top or self._surfaceInfo.Top).CollisionInset or 0)
-                            boxBottom = realTopEdge + realTileY * (y)      - ((tileSurface.Bottom or self._surfaceInfo.Bottom).CollisionInset or 0)
+                            boxLeft = realLeftEdge + realTileX * (x-1)     + leftInset
+                            boxRight = realLeftEdge + realTileX * (x)      - rightInset
+                            boxTop = realTopEdge + realTileY * (y-1)       + topInset
+                            boxBottom = realTopEdge + realTileY * (y)      - bottomInset
 
                             local hit, hDist, vDist = boxCollide(boxLeft,boxRight,boxTop,boxBottom,oLeftEdge,oRightEdge,oTopEdge,oBottomEdge)
 
@@ -621,17 +735,106 @@ function Tilemap:GetEdge(edge, x, y, layerID)
     local realTileX = tilemapSize[1]/self.Size[1]
     local realTileY = tilemapSize[2]/self.Size[2]
 
-    local tileID = self:GetTile(layerID, x, y)
+    local tileGID = self:GetTile(layerID, x, y)
+
+    local tileID, hFlip, vFlip, dFlip = decodeGID(tileGID)
     local tileSurface = self.SurfaceInfo[self.TileSurfaceMapping[tileID]] or self._surfaceInfo
-    local boxLeft = realLeftEdge + realTileX * (x-1)     + ((tileSurface.Left or self._surfaceInfo.Left).CollisionInset or 0)
-    local boxRight = realLeftEdge + realTileX * (x)      - ((tileSurface.Right or self._surfaceInfo.Right).CollisionInset or 0)
-    local boxTop = realTopEdge + realTileY * (y-1)       + ((tileSurface.Top or self._surfaceInfo.Top).CollisionInset or 0)
-    local boxBottom = realTopEdge + realTileY * (y)      - ((tileSurface.Bottom or self._surfaceInfo.Bottom).CollisionInset or 0)
+
+    local leftInset, rightInset, topInset, bottomInset = transformInsets(
+        ((tileSurface.Left or self._surfaceInfo.Left).CollisionInset or 0),
+        ((tileSurface.Right or self._surfaceInfo.Right).CollisionInset or 0),
+        ((tileSurface.Top or self._surfaceInfo.Top).CollisionInset or 0),
+        ((tileSurface.Bottom or self._surfaceInfo.Bottom).CollisionInset or 0),
+        hFlip, vFlip, dFlip
+    )
+
+    local boxLeft = realLeftEdge + realTileX * (x-1)     + leftInset
+    local boxRight = realLeftEdge + realTileX * (x)      - rightInset
+    local boxTop = realTopEdge + realTileY * (y-1)       + topInset
+    local boxBottom = realTopEdge + realTileY * (y)      - bottomInset
 
     return edge == "top" and boxTop
         or edge == "left" and boxLeft
         or edge == "right" and boxRight
         or edge == "bottom" and boxBottom
+end
+
+local function keyGen(props)
+  local parts = {}
+  for k, v in pairs(props) do
+    parts[#parts+1] = k .. "=" .. tostring(v)
+  end
+  table.sort(parts)
+  return table.concat(parts, ";")
+end
+
+local function splitOnDoubleUnderscore(str)
+    local parts = {}
+    local lastEnd = 1
+
+    for part, e in str:gmatch("([^_]+)()__") do
+        table.insert(parts, part)
+        lastEnd = e + 1  -- continue after "__"
+    end
+
+    -- add the trailing bit (or the whole string if no "__")
+    table.insert(parts, str:sub(lastEnd+1))
+
+    return parts
+end
+
+local dontUseVectorsForTheseKeys = {
+    Left = true, Right = true, Top = true, Bottom = true
+}
+
+function Tilemap.importFull(tiledPath, tilesetPath, atlasPath, properties)
+    local tilemap = Tilemap.import(tiledPath, atlasPath, properties)
+
+    local tiled_tileset_export = require(tilesetPath)
+
+    local tileSurfaceInfoClasses = {}
+    local tileSurfaceMapping = {}
+    for _, tile in ipairs(tiled_tileset_export.tiles) do
+        if tile.properties then
+            local parts = {}
+            local realProps = {}
+            for propName, val in pairs(tile.properties) do
+                parts[#parts+1] = propName .. "=" .. tostring(val) -- build out a property string
+                local propNameParts = splitOnDoubleUnderscore(propName)
+                local curLayer = realProps
+
+                if propNameParts[1]:sub(1,1)=="-" then -- interpret reverse order
+                    propNameParts[1] = propNameParts[1]:sub(2)
+                    for i = 1, #propNameParts-1 do
+                        curLayer[propNameParts[i]] = curLayer[propNameParts[i]] or (dontUseVectorsForTheseKeys[propNameParts[i]] and {} or V{})
+                        curLayer = curLayer[propNameParts[i]]
+                    end
+                    curLayer[propNameParts[#propNameParts]] = val
+                else
+                    for i = #propNameParts, 2, -1 do
+                        curLayer[propNameParts[i]] = curLayer[propNameParts[i]] or (dontUseVectorsForTheseKeys[propNameParts[i]] and {} or V{})
+                        curLayer = curLayer[propNameParts[i]]
+                    end
+                    curLayer[propNameParts[1]] = val
+                end
+
+
+            end
+            table.sort(parts)
+
+            local tileClassName = table.concat(parts, ";")
+            if not tileSurfaceInfoClasses[tileClassName] then
+                tileSurfaceInfoClasses[tileClassName] = realProps
+            end
+            tileSurfaceMapping[tile.id+1] = tileClassName
+        end
+    end
+            print(tostring(tileSurfaceInfoClasses, true))
+
+    tilemap.SurfaceInfo = tileSurfaceInfoClasses
+    tilemap.TileSurfaceMapping = tileSurfaceMapping
+
+    return tilemap
 end
 
 function Tilemap.import(tiledPath, atlasPath, properties)
@@ -748,7 +951,6 @@ function Tilemap.import(tiledPath, atlasPath, properties)
                                 
                                 -- filling a property
                                 local fields = k:split("%.")
-                                print(fields[#fields], "fuvk", v)
                                 local cSpace = namespace
                                 for i = 1, #fields-1 do
                                     cSpace[fields[i]] = cSpace[fields[i]] or {}

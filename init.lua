@@ -381,6 +381,7 @@ local types = {
     "chexcore.code.types.animation",
     "chexcore.code.types.font",
     "chexcore.code.types.prop",
+    "chexcore.code.types.renderMask",
     "chexcore.code.types.group",
     "chexcore.code.types.gui",
     "chexcore.code.types.text",

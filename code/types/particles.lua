@@ -630,7 +630,8 @@ function Particles:Draw(tx, ty)
         skipColors = true
         lg.setColor(self.ParticleColor)
     end
-
+    
+    local pTex = self.ParticleTexture
     for _, slot in ipairs(self._filledSlots) do
         local px = self._positions and self._positions[slot*2-1] or self.ParticlePosition[1]
         local py = self._positions and self._positions[slot*2] or self.ParticlePosition[2] 
@@ -650,7 +651,7 @@ function Particles:Draw(tx, ty)
             anim.Clock = self._systemLifeTime - self._startTimes[slot]
         end
 
-        self.ParticleTexture:DrawToScreen(
+        pTex:DrawToScreen(
             floor(px - tx)  + (self.RelativePosition and self.Position[1] or 0),
             floor(py - ty)  + (self.RelativePosition and self.Position[2] or 0),
             pr,

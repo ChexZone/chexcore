@@ -211,14 +211,14 @@ end
 function love.gamepadpressed(joystick, button)
     local name = joystick:getName()
     local index = joystick:getConnectedIndex()
-    sendInputDown("gp"..index, "gp_"..button)
+    sendInputDown("gp"..(index or 0), "gp_"..button)
     
 end
 
 function love.gamepadreleased(joystick, button)
     local name = joystick:getName()
     local index = joystick:getConnectedIndex()
-    sendInputUp("gp"..index, "gp_"..button)
+    sendInputUp("gp"..(index or 0), "gp_"..button)
 end
 
 if love._console ~= "3ds" then
