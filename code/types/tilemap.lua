@@ -13,6 +13,13 @@ local Tilemap = {
 
     Scale = 1,
 
+
+
+    AnimatedTiles = {
+        -- format: [tileId] = { currentFrame, currentTime, tileId1, duration1, tileId2, duration2, ... }
+    },
+    _tileIdsToUpdateThisFrame = {},
+
     SurfaceInfo = {
         --[[
             maps surface identifiers to real surface info
@@ -257,7 +264,7 @@ end
 
 Tilemap._priorityGlobalUpdate = function (dt)
     for tilemap, _ in pairs(Tilemap._cache) do
-        
+        tilemap._tileIdsToUpdateThisFrame = {} -- flush tile animation update queue 
         if tilemap._hasParallaxObjectLayers or tilemap.Position ~= tilemap._trackingOldPos then
             local camTilemapDist = tilemap:GetLayer():GetParent().Camera.Position - tilemap:GetPoint(0,0)
             
@@ -277,6 +284,18 @@ Tilemap._priorityGlobalUpdate = function (dt)
                 end
             end
         end
+
+        for tileId, animation in pairs(tilemap.AnimatedTiles) do
+            
+            animation[2] = animation[2] + dt -- update frame time
+            local numFrames = (#animation-2)/2
+            if animation[2] >= animation[2+(animation[1]*2)] then -- update frame
+                animation[2] = animation[2] - animation[2+(animation[1]*2)]
+                animation[1] = (animation[1] % numFrames)+1
+                tilemap._tileIdsToUpdateThisFrame[tileId] = true
+            end
+        end
+
         tilemap._trackingOldPos = tilemap.Position:Clone()
     end
 end
@@ -291,6 +310,7 @@ function Tilemap.new(atlasPath, tileSize, width, height, layers)
     
     newTilemap.Atlas = Texture.new(atlasPath)
     newTilemap.Tiles = {}
+    newTilemap.AnimatedTiles = {}
     newTilemap.LayerParallax = {}
     newTilemap.LayerOffset = {}
     newTilemap.CollisionLayers = {}
@@ -300,6 +320,7 @@ function Tilemap.new(atlasPath, tileSize, width, height, layers)
     newTilemap.Size[1] = width; newTilemap.Size[2] = height
 
     newTilemap._dimensions = V{width, height}
+    newTilemap._tileIdsToUpdateThisFrame = {}
     
     if not layers then
         -- generate tiles
@@ -338,6 +359,8 @@ function Tilemap.new(atlasPath, tileSize, width, height, layers)
     return newTilemap
 end
 
+
+
 function Tilemap:GetMap(n)
     return n and self.Layers[n] or self.Layers[1]
 end
@@ -361,11 +384,59 @@ local transformTable = {
     [7] = {r = -math.rad(90), sx = 1, sy = -1}, -- diagonal + X + Y
 }
 
+-- draws less tiles for hopefully better performance
+function Tilemap:AnimateChunk(layer, x, y, tilesToRedraw)
+    print("redrawing", tilesToRedraw)
+    x, y, layer = y and x or layer, y or x, y and layer or nil
+    for layerID = layer or 1, layer or #self.Layers do
+        local currentChunk = self._drawChunks[layerID][x + (y-1)*self._numChunks[1]]
+        currentChunk:Activate()
+
+        local tilesUsed = currentChunk._tilesUsed or {}
+        currentChunk._tilesUsed = tilesUsed
+
+        love.graphics.setColor(1,1,1,1)
+        love.graphics.setBlendMode("replace")
+        -- render this chunk's allotted tiles
+        local yOfs = (y-1) * self._chunkSize + 1
+        local xOfs = (x-1) * self._chunkSize + 1
+
+        
+        for ty = yOfs, math.min(yOfs + self._chunkSize - 1, self.Size[2]) do
+            for tx = xOfs, math.min(xOfs + self._chunkSize - 1, self.Size[1]) do
+                local tile = self:GetTile(layerID, tx, ty)
+                local tileID, hFlip, vFlip, dFlip = decodeGID(tile)
+
+                --print(x,y, tile)
+                if tilesToRedraw[tileID] then
+                    local idx = (hFlip and 1 or 0) + (vFlip and 2 or 0) + (dFlip and 4 or 0)
+                    local transform = transformTable[idx]
+                    tilesUsed[tileID] = true
+
+                    local quadID = tileID
+                    if self.AnimatedTiles[tileID] then
+                        local animTiles = self.AnimatedTiles[tileID]
+                        quadID = animTiles[1+(animTiles[1]*2)]
+                    end
+
+                    cdrawquad(self.Atlas._drawable, self.Tiles[quadID], self.TileSize, self.TileSize, (tx-xOfs)*self.TileSize + self.TileSize/2, (ty-yOfs)*self.TileSize + self.TileSize/2, transform.r, self.TileSize*transform.sx, self.TileSize*transform.sy, self.TileSize/2, self.TileSize/2)
+                end
+            end
+        end
+        love.graphics.setBlendMode("alpha")
+        currentChunk:Deactivate()
+    end
+end
+
 function Tilemap:DrawChunk(layer, x, y)
     x, y, layer = y and x or layer, y or x, y and layer or nil
     for layerID = layer or 1, layer or #self.Layers do
         local currentChunk = self._drawChunks[layerID][x + (y-1)*self._numChunks[1]]
         currentChunk:Activate()
+
+        local tilesUsed = {}
+        currentChunk._tilesUsed = tilesUsed
+
         love.graphics.clear()
         love.graphics.setColor(1,1,1,1)
         -- render this chunk's allotted tiles
@@ -381,8 +452,15 @@ function Tilemap:DrawChunk(layer, x, y)
                     local tileID, hFlip, vFlip, dFlip = decodeGID(tile)
                     local idx = (hFlip and 1 or 0) + (vFlip and 2 or 0) + (dFlip and 4 or 0)
                     local transform = transformTable[idx]
-                    
-                    cdrawquad(self.Atlas._drawable, self.Tiles[tileID], self.TileSize, self.TileSize, (tx-xOfs)*self.TileSize + self.TileSize/2, (ty-yOfs)*self.TileSize + self.TileSize/2, transform.r, self.TileSize*transform.sx, self.TileSize*transform.sy, self.TileSize/2, self.TileSize/2)
+                    tilesUsed[tileID] = true
+
+                    local quadID = tileID
+                    if self.AnimatedTiles[tileID] then
+                        local animTiles = self.AnimatedTiles[tileID]
+                        quadID = animTiles[1+(animTiles[1]*2)]
+                    end
+
+                    cdrawquad(self.Atlas._drawable, self.Tiles[quadID], self.TileSize, self.TileSize, (tx-xOfs)*self.TileSize + self.TileSize/2, (ty-yOfs)*self.TileSize + self.TileSize/2, transform.r, self.TileSize*transform.sx, self.TileSize*transform.sy, self.TileSize/2, self.TileSize/2)
                 end
             end
         end
@@ -396,10 +474,11 @@ function Tilemap:GenerateChunks()
         self._drawChunks[layerID] = {}
         for col = 1, self._numChunks.X do
             for row = 1, self._numChunks.Y do
-                self._drawChunks[layerID][#self._drawChunks[layerID]+1] = Canvas.new(
+                local chunk = Canvas.new(
                     self._chunkSize * self.TileSize,
                     self._chunkSize * self.TileSize
                 ):Properties{AlphaMode = "premultiplied"}
+                self._drawChunks[layerID][#self._drawChunks[layerID]+1] = chunk
             end
         end
     end
@@ -430,7 +509,7 @@ end
 local floor = math.floor
 
 local function drawLayer(self, layerID, camTilemapDist, sx, sy, ax, ay, tx, ty)
-
+    
     local layer = self:GetLayer()
     local camera = layer:GetParent().Camera
     local cameraPos = camera.Position
@@ -480,10 +559,26 @@ local function drawLayer(self, layerID, camTilemapDist, sx, sy, ax, ay, tx, ty)
                 if not skipCol then
                     --print(row, col)
                     local currentChunk = self._drawChunks[layerID][col + (row-1)*self._numChunks[1]]
+                    
+                    -- check to see if there are any tile updates for this chunk
+                    local tilesToRedraw, shouldRedrawChunk = {}, false
+                    for tileID in pairs(self._tileIdsToUpdateThisFrame) do
+                        if currentChunk._tilesUsed[tileID] then
+                            tilesToRedraw[tileID] = true
+                            shouldRedrawChunk = true
+                        end
+                    end
+
+                    if shouldRedrawChunk then
+                        self:AnimateChunk(layerID, col, row, tilesToRedraw)
+                    end
+
+
+                    
                     currentChunk:DrawToScreen(
                         px,
                         py,
-                        self.Rotation,-- + Chexcore._clock,
+                        self.Rotation,
                         sx, sy
                     )
                 end
@@ -513,6 +608,8 @@ function Tilemap:Draw(tx, ty)
             drawLayer(self, layerID, camTilemapDist, sx, sy, ax, ay, tx, ty)
         end
     end
+
+    
 
     if not self.DrawOverChildren and self:HasChildren() then
         self:DrawChildren(tx, ty)
@@ -828,8 +925,16 @@ function Tilemap.importFull(tiledPath, tilesetPath, atlasPath, properties)
             end
             tileSurfaceMapping[tile.id+1] = tileClassName
         end
+
+        if tile.animation then
+            local animationObject = {1, 0}
+            tilemap.AnimatedTiles[tile.id+1] = animationObject
+            for _, frame in ipairs(tile.animation) do
+                animationObject[#animationObject+1] = frame.tileid+1
+                animationObject[#animationObject+1] = frame.duration/1000
+            end
+        end
     end
-            print(tostring(tileSurfaceInfoClasses, true))
 
     tilemap.SurfaceInfo = tileSurfaceInfoClasses
     tilemap.TileSurfaceMapping = tileSurfaceMapping
