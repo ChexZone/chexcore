@@ -550,7 +550,6 @@ function _G.filteredListIterator(self, arg1, arg2, children)
 
     if not (arg1 or arg2) then  -- get entire set
         local i = 1; local nest; local prevObjects = {}
-        local i = 1; local nest; local prevObjects = {}
         if children then
             return function ()
                 if nest then
@@ -626,6 +625,7 @@ function _G.filteredListIterator(self, arg1, arg2, children)
 
                     if match then
                         prevObjects[c] = true
+                        
                         return c
                     end
 
@@ -697,7 +697,7 @@ function _G.filteredListIterator(self, arg1, arg2, children)
                 if not c then return nil end
                 
                 if arg1(c, arg2) then
-                    
+                    print("returning", c)
                     prevObjects[c] = true
                     return c
                 else

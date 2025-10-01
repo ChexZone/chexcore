@@ -362,6 +362,8 @@ end
 
 function Object:EachDescendant(arg1, arg2)
     if not arg2 and type2(arg1) == "string" then
+        
+        
         return iterFilter(self._children, "Name", arg1, true)
     end
 
