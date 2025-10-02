@@ -687,7 +687,7 @@ local function drawLayer(self, layerID, camTilemapDist, sx, sy, ax, ay, tx, ty)
                     end
 
                     if shouldRedrawChunk then
-                        -- self:AnimateChunk(layerID, col, row, tilesToRedraw)
+                        self:AnimateChunk(layerID, col, row, tilesToRedraw)
                     end
                     self:RefreshChunk(currentChunk)
                     
