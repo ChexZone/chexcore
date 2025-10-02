@@ -192,25 +192,88 @@ local Tilemap = {
     _hasParallaxObjectLayers = false,   -- little optimization
     _numChunks = V{1, 1},
     _drawChunks = {},
-    _chunkSize = 64, -- measured in tiles, not pixels
+    _recycledChunks = {},   -- evicted outdated chunks to be repurposed
+    _chunkSize = 32, -- measured in tiles, not pixels
+    _chunkCapacity = 50,
     _super = "Prop",      -- Supertype
     _cache = setmetatable({}, {__mode = "k"}), -- cache has weak keys
     _global = true
 }
 
+
+local LRU = {}
+LRU.__index = LRU
+
+function LRU.new(capacity)
+    return setmetatable({
+        capacity = capacity,
+        size = 0,
+        map = {},   -- object -> node
+        head = nil, -- most recent
+        tail = nil  -- least recent
+    }, LRU)
+end
+
+-- detach node from linked list
+local function detach(self, node)
+    if node.prev then node.prev.next = node.next end
+    if node.next then node.next.prev = node.prev end
+    if self.head == node then self.head = node.next end
+    if self.tail == node then self.tail = node.prev end
+    node.prev, node.next = nil, nil
+end
+
+-- insert node at head
+local function insertHead(self, node)
+    node.next = self.head
+    if self.head then self.head.prev = node end
+    self.head = node
+    if not self.tail then self.tail = node end
+end
+
+-- use/refresh object
+function LRU:use(obj)
+    local node = self.map[obj]
+    if node then
+        -- already present, refresh recency
+        detach(self, node)
+        insertHead(self, node)
+        return nil
+    else
+        -- new node
+        node = { obj = obj }
+        self.map[obj] = node
+        insertHead(self, node)
+        self.size = self.size + 1
+        -- print("adding", obj)
+        if self.size > self.capacity then
+            -- evict tail
+            local evict = self.tail
+            detach(self, evict)
+            self.map[evict.obj] = nil
+            self.size = self.size - 1
+            -- print("evicting", evict.obj)
+            return evict.obj
+        end
+        return nil
+    end
+end
+
+
 local bit = require("bit")
+local band, bor, bnot = bit.band, bit.bor, bit.bnot
 
 local FLIPPED_HORIZONTALLY_FLAG = 0x80000000
 local FLIPPED_VERTICALLY_FLAG   = 0x40000000
 local FLIPPED_DIAGONALLY_FLAG   = 0x20000000
 
 local function decodeGID(gid)
-    local hflip = bit.band(gid, FLIPPED_HORIZONTALLY_FLAG) ~= 0
-    local vflip = bit.band(gid, FLIPPED_VERTICALLY_FLAG) ~= 0
-    local dflip = bit.band(gid, FLIPPED_DIAGONALLY_FLAG) ~= 0
+    local hflip = band(gid, FLIPPED_HORIZONTALLY_FLAG) ~= 0
+    local vflip = band(gid, FLIPPED_VERTICALLY_FLAG) ~= 0
+    local dflip = band(gid, FLIPPED_DIAGONALLY_FLAG) ~= 0
 
-    local mask = bit.bor(FLIPPED_HORIZONTALLY_FLAG, FLIPPED_VERTICALLY_FLAG, FLIPPED_DIAGONALLY_FLAG)
-    local tileId = bit.band(gid, bit.bnot(mask))
+    local mask = bor(FLIPPED_HORIZONTALLY_FLAG, FLIPPED_VERTICALLY_FLAG, FLIPPED_DIAGONALLY_FLAG)
+    local tileId = band(gid, bnot(mask))
 
     return tileId, hflip, vflip, dflip
 end
@@ -315,6 +378,8 @@ function Tilemap.new(atlasPath, tileSize, width, height, layers)
     newTilemap.LayerOffset = {}
     newTilemap.CollisionLayers = {}
     newTilemap.ForegroundLayers = {}
+    newTilemap.IgnoreShaderLayers = {}
+    
     newTilemap.TileSize = tileSize
 
     newTilemap.Size[1] = width; newTilemap.Size[2] = height
@@ -351,9 +416,11 @@ function Tilemap.new(atlasPath, tileSize, width, height, layers)
     -- set up canvases for segmented drawing
     newTilemap._drawChunks = {}
     newTilemap._numChunks = V{math.ceil(width/newTilemap._chunkSize), math.ceil(height/newTilemap._chunkSize)}
-
-    newTilemap:GenerateChunks()
-
+    newTilemap._chunkHistory = LRU.new(newTilemap._chunkCapacity)
+    newTilemap._recycledChunks = {}
+    
+    -- newTilemap:GenerateChunks()
+    newTilemap:InitChunks()
     
     Tilemap._cache[newTilemap] = true
     return newTilemap
@@ -386,7 +453,7 @@ local transformTable = {
 
 -- draws less tiles for hopefully better performance
 function Tilemap:AnimateChunk(layer, x, y, tilesToRedraw)
-    print("redrawing", tilesToRedraw)
+    -- print("redrawing", tilesToRedraw)
     x, y, layer = y and x or layer, y or x, y and layer or nil
     for layerID = layer or 1, layer or #self.Layers do
         local currentChunk = self._drawChunks[layerID][x + (y-1)*self._numChunks[1]]
@@ -469,6 +536,50 @@ function Tilemap:DrawChunk(layer, x, y)
     end
 end
 
+function Tilemap:GenerateChunk(layerID, col, row)
+    local chunkIndex = col + (row-1)*self._numChunks[1]
+    local chunk
+    
+    if #self._recycledChunks > 0 then -- recycle an expired chunk
+        chunk = table.remove(self._recycledChunks, #self._recycledChunks)
+    else
+        chunk = Canvas.new(
+            self._chunkSize * self.TileSize,
+            self._chunkSize * self.TileSize
+        )
+    end
+
+    chunk:Properties{
+        AlphaMode = "premultiplied",
+        Name = "Chunk "..tostring(chunkIndex),
+        ChunkIndex = chunkIndex,
+        ChunkLayerID = layerID
+    }
+    chunk._tilesUsed = {}
+    self._drawChunks[layerID][chunkIndex] = chunk
+    
+    self:DrawChunk(layerID, col, row)
+    print("generating chunk?")
+    self:RefreshChunk(chunk)
+
+    return chunk
+end
+
+function Tilemap:RefreshChunk(chunk)
+    local evict = self._chunkHistory:use(chunk)
+    if evict then
+        self._drawChunks[evict.ChunkLayerID][evict.ChunkIndex] = nil
+        self._recycledChunks[#self._recycledChunks+1] = evict
+        -- print(self._recycledChunks)
+    end
+end
+
+function Tilemap:InitChunks()
+    for layerID = 1, #self.Layers do
+        self._drawChunks[layerID] = {}
+    end
+end
+
 function Tilemap:GenerateChunks()
     for layerID = 1, #self.Layers do
         self._drawChunks[layerID] = {}
@@ -513,7 +624,7 @@ local function drawLayer(self, layerID, camTilemapDist, sx, sy, ax, ay, tx, ty)
     local layer = self:GetLayer()
     local camera = layer:GetParent().Camera
     local cameraPos = camera.Position
-    local cameraSize = layer.Canvases and (layer.Canvases[1]:GetSize() * layer.TranslationInfluence) * camera.Zoom or V{love.graphics.getDimensions()} * layer.TranslationInfluence * camera.Zoom
+    local cameraSize = layer.Canvases and (layer.Canvases[1]:GetSize() * layer.TranslationInfluence) / camera.Zoom or V{love.graphics.getDimensions()} * layer.TranslationInfluence / camera.Zoom
 
     love.graphics.setColor(self.Color * (self.LayerColors[layerID] or Constant.COLOR.WHITE))
     local parallaxX = self.LayerParallax[layerID] and self.LayerParallax[layerID][1] or 1
@@ -528,18 +639,18 @@ local function drawLayer(self, layerID, camTilemapDist, sx, sy, ax, ay, tx, ty)
     local rightChunkBound = self._numChunks[1]
     local topChunkBound = 1
     local bottomChunkBound = self._numChunks[2]
-
+    
     for row = 1, self._numChunks[2] do
         -- py is the ON-SCREEN y position of the top-right corner of the chunk
         local py = floor(self.Position[2] - ty + sy*(row-1) - ay + offsetY) + (camTilemapDist.Y) * (1 - parallaxY)
 
         local pyCamDist = camera.Position.Y - py
-        
+            
         local skipRow = false
-        if py - cameraSize.Y/2 > cameraSize.Y/2 then -- this row is too low to be onscreen!!
+        if py - cameraSize.Y > cameraSize.Y then -- this row is too low to be onscreen!!
             break -- we can just do this lol
         end
-        if (py+sy) - cameraSize.Y/2 < -cameraSize.Y/2 then -- this row is too low to be onscreen!!
+        if (py+sy) - cameraSize.Y < -cameraSize.Y then -- this row is too low to be onscreen!!
             skipRow = true
         end
 
@@ -549,17 +660,23 @@ local function drawLayer(self, layerID, camTilemapDist, sx, sy, ax, ay, tx, ty)
                 local px = floor(self.Position[1] - tx + sx*(col-1) - ax + offsetX) + (camTilemapDist.X) * (1 - parallaxX)
                 
                 local skipCol = false
-                if px - cameraSize.X/2 > cameraSize.X/2 then -- this col is too low to be onscreen!!
+                if px - cameraSize.X > cameraSize.X then -- this col is too low to be onscreen!!
                     break -- we can just do this lol
                 end
-                if (px+sx) - cameraSize.X/2 < -cameraSize.X/2 then -- this row is too low to be onscreen!!
+                if (px+sx) - cameraSize.X < -cameraSize.X then -- this row is too low to be onscreen!!
                     skipCol = true
                 end
                 
                 if not skipCol then
                     --print(row, col)
-                    local currentChunk = self._drawChunks[layerID][col + (row-1)*self._numChunks[1]]
+                    local chunkIndex = col + (row-1)*self._numChunks[1]
+                    local currentChunk = self._drawChunks[layerID][chunkIndex] 
                     
+                    if not currentChunk then
+                        currentChunk = self:GenerateChunk(layerID, col, row)
+                        self:DrawChunk(layerID, col, row)
+                    end
+
                     -- check to see if there are any tile updates for this chunk
                     local tilesToRedraw, shouldRedrawChunk = {}, false
                     for tileID in pairs(self._tileIdsToUpdateThisFrame) do
@@ -570,11 +687,12 @@ local function drawLayer(self, layerID, camTilemapDist, sx, sy, ax, ay, tx, ty)
                     end
 
                     if shouldRedrawChunk then
-                        self:AnimateChunk(layerID, col, row, tilesToRedraw)
+                        -- self:AnimateChunk(layerID, col, row, tilesToRedraw)
                     end
-
-
+                    self:RefreshChunk(currentChunk)
                     
+
+
                     currentChunk:DrawToScreen(
                         px,
                         py,
@@ -602,7 +720,9 @@ function Tilemap:Draw(tx, ty)
     
     local camTilemapDist = self:GetLayer():GetParent().Camera.Position - self:GetPoint(0,0)
     for layerID = 1, #self.Layers do
-        if self.ForegroundLayers[layerID] then
+        if self.IgnoreShaderLayers[layerID] then
+            self:GetLayer():DelayDrawCallUntilAfterShaders(self.ZIndex or 0, drawLayer, self, layerID, camTilemapDist, sx, sy, ax, ay, tx, ty)
+        elseif self.ForegroundLayers[layerID] then
             self:GetLayer():DelayDrawCall(self.ZIndex or 0, drawLayer, self, layerID, camTilemapDist, sx, sy, ax, ay, tx, ty)
         else
             drawLayer(self, layerID, camTilemapDist, sx, sy, ax, ay, tx, ty)
@@ -968,6 +1088,7 @@ function Tilemap.import(tiledPath, atlasPath, properties)
             if layer.properties then
                 newTilemap.CollisionLayers[n] = not layer.properties.IgnoreCollision
                 newTilemap.ForegroundLayers[n] = layer.properties.Foreground
+                newTilemap.IgnoreShaderLayers[n] = layer.properties.DrawOverShaders
             end
 
             if layer.tintcolor then
@@ -1104,8 +1225,8 @@ function Tilemap.import(tiledPath, atlasPath, properties)
     end
 
 
-    newTilemap:GenerateChunks()
-
+    -- newTilemap:GenerateChunks()
+    newTilemap:InitChunks()
     
 
     tiled_export = nil
