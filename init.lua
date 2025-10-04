@@ -16,6 +16,7 @@ _G.Chexcore = {
     _priorityGlobalUpdates = {},    -- for any types that want to update before globalUpdates do
     _globalDraws = {},      -- for any types that want independent draw control
     _recordingCanvases = {},    -- a container for any Canvas recorded with Canvas:Record(); ordered list items in format {progress, numFrames, canvas, outputPath}
+    _recordingCanvasMatMaps = {},
 
     -- constants
     MAX_TABLE_OUTPUT_INDENT = 30, -- how many layers deep tostring() will expand a table into.
@@ -29,6 +30,10 @@ end
 
 -- when an Object is indexed, this variable helps keep the referenced up the type chain
 _G.OBJSEARCH = nil
+
+-- just helpful (updated in Canvas:Activate() and Canvas:Deactivate())
+_G.CurrentCanvas = nil
+
 
 -- set default LOVE values
 love.graphics.setDefaultFilter("nearest", "nearest", 1)
@@ -75,6 +80,19 @@ function Chexcore.Update(dt)
             table.remove(Chexcore._recordingCanvases, i)
         end
     end
+
+    for i, tab in ipairs(Chexcore._recordingCanvasMatMaps) do
+        tab[1] = tab[1] + 1
+
+        print(tab)
+        tab[3]._materialMap:newImageData():encode("png", makeDir(tab[4] .. "/" .. tostring(tab[1]) .. ".png"))
+
+        if tab[1] == tab[2] then
+            table.remove(Chexcore._recordingCanvasMatMaps, i)
+        end
+    end
+
+    
 end
 
 function Chexcore.Draw(params)
@@ -204,6 +222,10 @@ end
 
 function Chexcore.RecordCanvas(canvas, numFrames, outputPath)
     Chexcore._recordingCanvases[#Chexcore._recordingCanvases+1] = {0, numFrames, canvas, outputPath}
+end
+
+function Chexcore.RecordCanvasMatMap(canvas, numFrames, outputPath)
+    Chexcore._recordingCanvasMatMaps[#Chexcore._recordingCanvasMatMaps+1] = {0, numFrames, canvas, outputPath}
 end
 
 local fps = 0
@@ -377,6 +399,7 @@ local types = {
     "chexcore.code.types.ray",
     "chexcore.code.types.sound",
     "chexcore.code.types.streamSound",
+    "chexcore.code.types.shader",
     "chexcore.code.types.texture",
     "chexcore.code.types.animation",
     "chexcore.code.types.font",
@@ -391,7 +414,6 @@ local types = {
     "chexcore.code.types.scene",
     "chexcore.code.types.layer",
     "chexcore.code.types.canvas",
-    "chexcore.code.types.shader",
 }
 
 for _, type in ipairs(types) do

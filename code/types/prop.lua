@@ -86,9 +86,9 @@ function Prop:Draw(tx, ty, isForeground)
     -- end
     
     local oldshader
-    if self.Shader then
-        self.Shader:Activate()
-    end
+    -- if self.Shader then
+    --     self.Shader:Activate()
+    -- end
     if not self._isCulled and self.DrawOverChildren and self:HasChildren() then
         self:DrawChildren(tx, ty)
     end
@@ -108,9 +108,9 @@ function Prop:Draw(tx, ty, isForeground)
         self:DrawChildren(tx, ty)
     end
 
-    if self.Shader then
-        self.Shader:Deactivate()
-    end
+    -- if self.Shader then
+    --     self.Shader:Deactivate()
+    -- end
 end
 
 

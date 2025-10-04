@@ -344,11 +344,18 @@ function Layer:Draw(tx, ty)
 
             if self.ShaderQueue[shader] then
                 -- send any relevant data to the shader:
+                
                 for extern, val in pairs(self.ShaderQueue[shader]) do
                     self.ShaderCache[shader]:Send(extern, unpack(val))
                 end
             end
             self.ShaderCache[shader]:Activate()
+            if shader == "lighting" then
+                self.ShaderCache[shader]:Send("materialMap", self.FinalCanvas._materialMap)
+                self.ShaderCache[shader]:Send("normalStrength", 1)
+                self.ShaderCache[shader]:Send("specularPower", 32)
+                self.ShaderCache[shader]:Send("viewDirection", {0,0,-0.1})
+            end
             self.HelperCanvas:CopyFrom(self.FinalCanvas)
             self.ShaderCache[shader]:Deactivate()
             self.FinalCanvas, self.HelperCanvas = self.HelperCanvas, self.FinalCanvas
@@ -361,18 +368,31 @@ function Layer:Draw(tx, ty)
         delayedCallsList[#delayedCallsList+1] = priority
     end
     table.sort(delayedCallsList)
-
-    if #delayedCallsList > 0 then
-        
-        self.FinalCanvas:Activate()
-        for _, priority in ipairs(delayedCallsList) do
-            local callPairs = self._delayedDrawcallsShader[priority]
-            for i = 1, #callPairs, 2 do
-                callPairs[i](unpack(callPairs[i+1]))
-            end
-        end
-        self.FinalCanvas:Deactivate()
+    
+if #delayedCallsList > 0 then
+    self.FinalCanvas:Activate()
+    
+    -- Store and deactivate any active multi-render shader
+    local wasMultiRenderActive = false
+    if _G.CurrentCanvas and _G.CurrentCanvas._materialMap and _G.MULTI_RENDER_SHADER then
+        _G.MULTI_RENDER_SHADER:Deactivate()
+        wasMultiRenderActive = true
     end
+    
+    for _, priority in ipairs(delayedCallsList) do
+        local callPairs = self._delayedDrawcallsShader[priority]
+        for i = 1, #callPairs, 2 do
+            callPairs[i](unpack(callPairs[i+1]))
+        end
+    end
+    
+    -- Restore multi-render shader if it was active
+    if wasMultiRenderActive then
+        _G.MULTI_RENDER_SHADER:Activate()
+    end
+    
+    self.FinalCanvas:Deactivate()
+end
 
     self._delayedDrawcallsShader = {}
 end

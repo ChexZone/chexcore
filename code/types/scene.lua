@@ -49,7 +49,7 @@ end
 -- the default rendering pipeline for a Scene
 local lg = love.graphics
 function Scene:Draw(params)
-    
+
     local usingCanvases = false
     -- go through all the Layers uh... think about it chex !!
     local tx, ty = self.Camera.Position:Filter(math.floor)()

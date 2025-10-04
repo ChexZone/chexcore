@@ -193,7 +193,7 @@ local Tilemap = {
     _numChunks = V{1, 1},
     _drawChunks = {},
     _recycledChunks = {},   -- evicted outdated chunks to be repurposed
-    _chunkSize = 32, -- measured in tiles, not pixels
+    _chunkSize = 64, -- measured in tiles, not pixels
     _chunkCapacity = 50,
     _super = "Prop",      -- Supertype
     _cache = setmetatable({}, {__mode = "k"}), -- cache has weak keys
@@ -486,7 +486,7 @@ function Tilemap:AnimateChunk(layer, x, y, tilesToRedraw)
                         quadID = animTiles[1+(animTiles[1]*2)]
                     end
 
-                    cdrawquad(self.Atlas._drawable, self.Tiles[quadID], self.TileSize, self.TileSize, (tx-xOfs)*self.TileSize + self.TileSize/2, (ty-yOfs)*self.TileSize + self.TileSize/2, transform.r, self.TileSize*transform.sx, self.TileSize*transform.sy, self.TileSize/2, self.TileSize/2)
+                    cdrawquad(self.Atlas._drawable, (self.Atlas._drawable or false), self.Tiles[quadID], self.TileSize, self.TileSize, (tx-xOfs)*self.TileSize + self.TileSize/2, (ty-yOfs)*self.TileSize + self.TileSize/2, transform.r, self.TileSize*transform.sx, self.TileSize*transform.sy, self.TileSize/2, self.TileSize/2)
                 end
             end
         end
@@ -527,7 +527,7 @@ function Tilemap:DrawChunk(layer, x, y)
                         quadID = animTiles[1+(animTiles[1]*2)]
                     end
 
-                    cdrawquad(self.Atlas._drawable, self.Tiles[quadID], self.TileSize, self.TileSize, (tx-xOfs)*self.TileSize + self.TileSize/2, (ty-yOfs)*self.TileSize + self.TileSize/2, transform.r, self.TileSize*transform.sx, self.TileSize*transform.sy, self.TileSize/2, self.TileSize/2)
+                    cdrawquad(self.Atlas._drawable, (self.Atlas._drawable or false), self.Tiles[quadID], self.TileSize, self.TileSize, (tx-xOfs)*self.TileSize + self.TileSize/2, (ty-yOfs)*self.TileSize + self.TileSize/2, transform.r, self.TileSize*transform.sx, self.TileSize*transform.sy, self.TileSize/2, self.TileSize/2)
                 end
             end
         end
@@ -537,10 +537,11 @@ function Tilemap:DrawChunk(layer, x, y)
 end
 
 function Tilemap:GenerateChunk(layerID, col, row)
+    local c1, c2 = love.graphics.getCanvas()
     local chunkIndex = col + (row-1)*self._numChunks[1]
     local chunk
     
-    if #self._recycledChunks > 0 then -- recycle an expired chunk
+    if #self._recycledChunks > 0 or false then -- recycle an expired chunk
         chunk = table.remove(self._recycledChunks, #self._recycledChunks)
     else
         chunk = Canvas.new(
@@ -559,9 +560,10 @@ function Tilemap:GenerateChunk(layerID, col, row)
     self._drawChunks[layerID][chunkIndex] = chunk
     
     self:DrawChunk(layerID, col, row)
-    print("generating chunk?")
+    
     self:RefreshChunk(chunk)
 
+    love.graphics.setCanvas()
     return chunk
 end
 
@@ -639,7 +641,6 @@ local function drawLayer(self, layerID, camTilemapDist, sx, sy, ax, ay, tx, ty)
     local rightChunkBound = self._numChunks[1]
     local topChunkBound = 1
     local bottomChunkBound = self._numChunks[2]
-    
     for row = 1, self._numChunks[2] do
         -- py is the ON-SCREEN y position of the top-right corner of the chunk
         local py = floor(self.Position[2] - ty + sy*(row-1) - ay + offsetY) + (camTilemapDist.Y) * (1 - parallaxY)
@@ -673,10 +674,10 @@ local function drawLayer(self, layerID, camTilemapDist, sx, sy, ax, ay, tx, ty)
                     local currentChunk = self._drawChunks[layerID][chunkIndex] 
                     
                     if not currentChunk then
+                        -- print("generating chunk?")
                         currentChunk = self:GenerateChunk(layerID, col, row)
                         self:DrawChunk(layerID, col, row)
                     end
-
                     -- check to see if there are any tile updates for this chunk
                     local tilesToRedraw, shouldRedrawChunk = {}, false
                     for tileID in pairs(self._tileIdsToUpdateThisFrame) do
@@ -1143,10 +1144,8 @@ function Tilemap.import(tiledPath, atlasPath, properties)
                     -- print(newObj, newObj.AnchorPoint)
 
                     if objData.gid then
-                        print(newObj, "1",  newObj.Size.Y * (newObj.AnchorPoint.Y), newObj.Position)
                         newObj.Position.Y = newObj.Position.Y - newObj.Size.Y * (1-newObj.AnchorPoint.Y)
                     else
-                        print(newObj, "2")
                         newObj.Position.Y = newObj.Position.Y + newObj.Size.Y * newObj.AnchorPoint.Y
                     end
 

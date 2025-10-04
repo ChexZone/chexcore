@@ -697,7 +697,6 @@ function _G.filteredListIterator(self, arg1, arg2, children)
                 if not c then return nil end
                 
                 if arg1(c, arg2) then
-                    print("returning", c)
                     prevObjects[c] = true
                     return c
                 else
@@ -924,7 +923,7 @@ function _G.setcolor(r, g, b, a)
 end
 
 local lg = love.graphics
-_G.cdraw = function(drawable, x, y, r, sx, sy, ox, oy, kx, ky, ignoreSnap)
+_G.cdraw = function(drawable, materialMap, x, y, r, sx, sy, ox, oy, kx, ky, ignoreSnap)
     -- lg.push()
     love_graphics_draw(
         drawable,
@@ -939,7 +938,7 @@ _G.cdraw = function(drawable, x, y, r, sx, sy, ox, oy, kx, ky, ignoreSnap)
     -- lg.pop()
 end
 
-_G.cdrawquad = function(drawable, quad, qx, qy, x, y, r, sx, sy, ox, oy, kx, ky, ignoreSnap)
+_G.cdrawquad = function(drawable, materialMap, quad, qx, qy, x, y, r, sx, sy, ox, oy, kx, ky, ignoreSnap)
     love_graphics_draw(
         drawable,
         quad,
