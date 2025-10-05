@@ -40,7 +40,7 @@ end
 function RenderMask:Draw(tx, ty)
     love.graphics.setBlendMode("alpha")
     -- Prop.Draw(self,tx,ty)
-    self.Canvas1:Activate()
+    self.Canvas1:Activate{1}
     -- love.graphics.setBlendMode("replace")
     love.graphics.setColor(1,1,1,1)
     love.graphics.clear()
@@ -52,9 +52,9 @@ function RenderMask:Draw(tx, ty)
             
         elseif phase:IsA("Shader") then
             self.Canvas1:Deactivate()
-            phase:Activate()
-            self.Canvas2:CopyFrom(self.Canvas1)
-            phase:Deactivate()
+            -- phase:Activate()
+            self.Canvas2:CopyFrom(self.Canvas1, phase)
+            -- phase:Deactivate()
             self.Canvas1, self.Canvas2 = self.Canvas2, self.Canvas1
             self.Canvas1:Activate()
         end

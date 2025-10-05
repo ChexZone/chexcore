@@ -22,5 +22,5 @@ vec4 effect(vec4 color, Image tex, vec2 uv, vec2 sc) {
     float em = Texel(emissiveMap, uv).r;
     em = mix(0.0, em, emissiveWeight);
 
-    return vec4(enc, em, 1.0);
+    return vec4(enc, em, spec);
 }

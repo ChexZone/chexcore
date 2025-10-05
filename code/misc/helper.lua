@@ -913,6 +913,7 @@ end
 --- Draw stuff 
 
 local love_graphics_draw = love.graphics.draw
+local love_graphics_draw_layer = love.graphics.drawLayer
 local floor = math.floor
 -- negative sx and sy values do default behavior; positive values are pixel measurements
 -- ox and oy values between 0 and 1 will be treated as a ratio to image size (anchor point)
@@ -923,8 +924,9 @@ function _G.setcolor(r, g, b, a)
 end
 
 local lg = love.graphics
-_G.cdraw = function(drawable, materialMap, x, y, r, sx, sy, ox, oy, kx, ky, ignoreSnap)
+_G.cdraw = function(drawable, x, y, r, sx, sy, ox, oy, kx, ky, ignoreSnap)
     -- lg.push()
+    
     love_graphics_draw(
         drawable,
         ignoreSnap and (x or 0) or floor(x or 0),
@@ -938,7 +940,23 @@ _G.cdraw = function(drawable, materialMap, x, y, r, sx, sy, ox, oy, kx, ky, igno
     -- lg.pop()
 end
 
-_G.cdrawquad = function(drawable, materialMap, quad, qx, qy, x, y, r, sx, sy, ox, oy, kx, ky, ignoreSnap)
+_G.cdrawlayer = function(drawable, layer, x, y, r, sx, sy, ox, oy, kx, ky, ignoreSnap)
+    -- lg.push()
+    
+    love_graphics_draw_layer(
+        drawable, layer,
+        ignoreSnap and (x or 0) or floor(x or 0),
+        ignoreSnap and (y or 0) or floor(y or 0), r,
+        1 / drawable:getWidth() * (sx or 1),
+        1 / drawable:getHeight() * (sy or 1),
+        ox and (ox <= 1 and drawable:getWidth() * ox or ox),
+        oy and (oy <= 1 and drawable:getHeight() * oy or oy),
+        kx, ky
+    )
+    -- lg.pop()
+end
+
+_G.cdrawquad = function(drawable, quad, qx, qy, x, y, r, sx, sy, ox, oy, kx, ky, ignoreSnap)
     love_graphics_draw(
         drawable,
         quad,

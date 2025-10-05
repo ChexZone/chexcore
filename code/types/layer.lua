@@ -278,6 +278,7 @@ function Layer:Draw(tx, ty)
                         
                         self:DelayDrawCall(prop.ZIndex or 0, prop.Draw, prop, tx, ty, true)
                     else
+                        
                         prop:Draw(tx, ty)
                     end
                 end
@@ -341,7 +342,7 @@ function Layer:Draw(tx, ty)
         for _, shader in ipairs(self.OverlayShaders) do
             -- load shader into cache if not loaded yet
             self.ShaderCache[shader] = type(self.ShaderCache[shader]) == "string" and Shader.new(self.ShaderCache[shader]) or self.ShaderCache[shader]
-
+            
             if self.ShaderQueue[shader] then
                 -- send any relevant data to the shader:
                 
@@ -350,13 +351,14 @@ function Layer:Draw(tx, ty)
                 end
             end
             self.ShaderCache[shader]:Activate()
-            if shader == "lighting" then
+            if shader == "lighting" and self.FinalCanvas._materialMap then
+                
                 self.ShaderCache[shader]:Send("materialMap", self.FinalCanvas._materialMap)
                 self.ShaderCache[shader]:Send("normalStrength", 1)
-                self.ShaderCache[shader]:Send("specularPower", 32)
-                self.ShaderCache[shader]:Send("viewDirection", {0,0,-0.1})
+                self.ShaderCache[shader]:Send("specularPower", 128)
+                self.ShaderCache[shader]:Send("viewDirection", {0,0,1})
             end
-            self.HelperCanvas:CopyFrom(self.FinalCanvas)
+            self.HelperCanvas:CopyFrom(self.FinalCanvas, self.ShaderCache[shader])
             self.ShaderCache[shader]:Deactivate()
             self.FinalCanvas, self.HelperCanvas = self.HelperCanvas, self.FinalCanvas
         end

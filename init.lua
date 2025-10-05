@@ -7,6 +7,10 @@ _G.Chexcore = {
     _lastFrameTime = 0,     -- how long the previous frame actually took
     _graphicsStats = {},        -- the output of love.graphics.getStats()
 
+    _canvasSettings = {
+        format = "normal"
+    },
+
     _frameDelay = 0,        -- (sec) add to this value to wait extra time before the next frame
     _skipFrames = 0,
 

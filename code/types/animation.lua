@@ -88,14 +88,14 @@ function Animation:DrawToScreen(...)
         end
         MULTI_RENDER_SHADER:Send("albedoTexture", self._texture._drawable)
         MULTI_RENDER_SHADER:Send("materialTexture", self._texture._materialMap)
-        draw(self._texture._drawable, self._texture._materialMap, self._frames[clamp(self.CurrentFrame,1,#self._frames)], self._quadSize[1], self._quadSize[2], ...)
+        draw(self._texture._drawable, self._frames[clamp(self.CurrentFrame,1,#self._frames)], self._quadSize[1], self._quadSize[2], ...)
     else
         -- if CurrentCanvas and MULTI_RENDER_SHADER then
         --     CurrentCanvas.
         -- end
-        MULTI_RENDER_SHADER:Send("albedoTexture", self._texture._drawable)
-        MULTI_RENDER_SHADER:Send("materialTexture", self._texture._dummyTexture)
-        draw(self._texture._drawable, (self._texture._materialMap or false), self._frames[clamp(self.CurrentFrame,1,#self._frames)], self._quadSize[1], self._quadSize[2],...)
+        -- MULTI_RENDER_SHADER:Send("albedoTexture", self._texture._drawable)
+        -- MULTI_RENDER_SHADER:Send("materialTexture", self._texture._dummyTexture)
+        draw(self._texture._drawable, self._frames[clamp(self.CurrentFrame,1,#self._frames)], self._quadSize[1], self._quadSize[2],...)
     end
 end
 

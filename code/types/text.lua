@@ -60,9 +60,7 @@ local floor = math.floor
 
 function Text:Draw(tx, ty, isForeground)
     
-    if self.Shader then
-        self.Shader:Activate()
-    end
+
     if self.DrawOverChildren and self:HasChildren() then
         self:DrawChildren(tx, ty)
     end
@@ -86,7 +84,8 @@ function Text:Draw(tx, ty, isForeground)
     lg.setColor(self.TextColor)
     lg.setBlendMode("alpha","alphamultiply")
     local textScale = self.FontSize and self.FontSize / self.Font._fontSize or 1
-
+    local shader = love.graphics.getShader()
+    love.graphics.setShader(self.Shader or nil)
     if self.WordWrap then
         lg.printf(
             self.Text,
@@ -117,9 +116,7 @@ function Text:Draw(tx, ty, isForeground)
         self:DrawChildren(tx, ty)
     end
 
-    if self.Shader then
-        self.Shader:Deactivate()
-    end
+    love.graphics.setShader(shader)
 end
 
 return Text

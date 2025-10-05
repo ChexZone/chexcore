@@ -78,7 +78,6 @@ end
 local sin, cos, abs, max, sqrt, floor = math.sin, math.cos, math.abs, math.max, math.sqrt, math.floor
 local lg = love.graphics
 function Prop:Draw(tx, ty, isForeground)
-    
     -- if self.DrawInForeground and not isForeground then
     --     print(self)
     --     self:GetLayer():DelayDrawCall(Prop.Draw, self, tx, ty, true)

@@ -486,7 +486,7 @@ function Tilemap:AnimateChunk(layer, x, y, tilesToRedraw)
                         quadID = animTiles[1+(animTiles[1]*2)]
                     end
 
-                    cdrawquad(self.Atlas._drawable, (self.Atlas._drawable or false), self.Tiles[quadID], self.TileSize, self.TileSize, (tx-xOfs)*self.TileSize + self.TileSize/2, (ty-yOfs)*self.TileSize + self.TileSize/2, transform.r, self.TileSize*transform.sx, self.TileSize*transform.sy, self.TileSize/2, self.TileSize/2)
+                    cdrawquad(self.Atlas._drawable, self.Tiles[quadID], self.TileSize, self.TileSize, (tx-xOfs)*self.TileSize + self.TileSize/2, (ty-yOfs)*self.TileSize + self.TileSize/2, transform.r, self.TileSize*transform.sx, self.TileSize*transform.sy, self.TileSize/2, self.TileSize/2)
                 end
             end
         end
@@ -527,7 +527,7 @@ function Tilemap:DrawChunk(layer, x, y)
                         quadID = animTiles[1+(animTiles[1]*2)]
                     end
 
-                    cdrawquad(self.Atlas._drawable, (self.Atlas._drawable or false), self.Tiles[quadID], self.TileSize, self.TileSize, (tx-xOfs)*self.TileSize + self.TileSize/2, (ty-yOfs)*self.TileSize + self.TileSize/2, transform.r, self.TileSize*transform.sx, self.TileSize*transform.sy, self.TileSize/2, self.TileSize/2)
+                    cdrawquad(self.Atlas._drawable, self.Tiles[quadID], self.TileSize, self.TileSize, (tx-xOfs)*self.TileSize + self.TileSize/2, (ty-yOfs)*self.TileSize + self.TileSize/2, transform.r, self.TileSize*transform.sx, self.TileSize*transform.sy, self.TileSize/2, self.TileSize/2)
                 end
             end
         end

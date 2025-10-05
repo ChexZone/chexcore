@@ -1,15 +1,14 @@
-uniform sampler2D albedoTexture;
-uniform sampler2D materialTexture;
+uniform sampler2DArray MainTex;
 
 void effect()
 {
-    // Sample both textures at the same UV coordinates
-    vec4 albedoColor = Texel(albedoTexture, VaryingTexCoord.xy);
-    vec4 materialColor = Texel(materialTexture, VaryingTexCoord.xy);
+    // Sample the 3 layers from the texture array
+    vec4 layer0 = Texel(MainTex, vec3(VaryingTexCoord.xy, 0.0));
+    vec4 layer1 = Texel(MainTex, vec3(VaryingTexCoord.xy, 1.0));
+    vec4 layer2 = Texel(MainTex, vec3(VaryingTexCoord.xy, 2.0));
     
-    // Apply the vertex color (from love.graphics.setColor) to the albedo
-    love_Canvases[0] = albedoColor * VaryingColor;
-    
-    // Material properties usually don't get tinted, but you could apply it if needed
-    love_Canvases[1] = materialColor; // or materialColor * VaryingColor if you want tinting
+    // Output each layer to its corresponding canvas
+    love_Canvases[0] = layer0 * VaryingColor;
+    love_Canvases[1] = layer1 * VaryingColor;
+    love_Canvases[2] = layer2 * VaryingColor;
 }
