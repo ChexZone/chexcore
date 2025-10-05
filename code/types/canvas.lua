@@ -5,21 +5,17 @@ local Canvas = {
     BlendMode = "alpha",    -- the LOVE BlendMode to apply to a Canvas when drawing it
     AlphaMode = "alphamultiply",    -- same as above, but AlphaBlendMode
 
-    IgnoreMaterialMap = false,
-
     -- internal properties
     _oldShader = nil,
     _oldCanvas = nil,
     _renderTarget = nil,    -- set in constructor
     _drawable = nil,       -- Love2D "real canvas" created in constructor
-    _materialMap = nil,
     _size = V{320, 180},    -- Vector2 positional storage (created in constructor)
     _super = "Texture",      -- Supertype
     _global = true,
 
-    MULTI_RENDER_SHADER = Shader.new("chexcore/assets/shaders/render-albedo-materialmap.glsl")
+    DEFAULT_SHADER = Shader.new("chexcore/assets/shaders/default.glsl")
 }
-_G.MULTI_RENDER_SHADER = Canvas.MULTI_RENDER_SHADER
 
 
 local lg = love.graphics
@@ -28,7 +24,6 @@ local lg = love.graphics
 local newRealCanvas = love.graphics.newCanvas
 function Canvas.new(width, height)
     local newCanvas = Canvas:SuperInstance()
-
     newCanvas._size = V{width or Canvas._size[1], height or Canvas._size[2]}
     newCanvas._drawable = newRealCanvas(newCanvas._size.X, newCanvas._size.Y, 3, Chexcore._canvasSettings)
     return Canvas:Connect(newCanvas)
@@ -64,8 +59,10 @@ function Canvas:DrawToScreen(...)
     
 
     -- render the Canvas    
-    -- drawLayer(self._drawable, 1, ...)
-    drawLayer(self._drawable, 1, ...)
+    draw(self._drawable, ...)
+    -- love.graphics.setShader()
+    -- drawLayer(self., 1, ...)
+    -- love.graphics.setShader(Canvas.DEFAULT_SHADER._realShader)
 
     setBlendMode(mode, alphaMode)
 end
@@ -84,43 +81,23 @@ function Canvas:Activate(layers)
         _G.CurrentCanvas = {{self._drawable, layer=1},{self._drawable, layer=2},{self._drawable, layer=3}}
     end
 
-    -- if self._materialMap and not self.Shader then
-    --     setCanvas(self._drawable, self._materialMap)
-        
-    --     MULTI_RENDER_SHADER:Activate()
-        
-    -- else
-    --     if self._oldCanvas and self._oldCanvas._materialMap then
-    --         MULTI_RENDER_SHADER:Deactivate()
-    --     end
-        MULTI_RENDER_SHADER:Activate()
-        setCanvas(_G.CurrentCanvas)
-    -- end
-        -- print(love.graphics.getCanvas())
+  
+    Canvas.DEFAULT_SHADER:Activate()
+    setCanvas(_G.CurrentCanvas)
+
+
     if self.Shader then
         self.Shader:Activate()
     end
 end
 
-function Canvas:InitMaterialMap()
-    self._materialMap = newRealCanvas(self:GetWidth(), self:GetHeight(), 3, Chexcore._canvasSettings)
-end
-
 function Canvas:Deactivate()
     if self.Shader then
         self.Shader:Deactivate()
-    elseif self._materialMap then
-        self.MULTI_RENDER_SHADER:Deactivate()
     end
-    self.MULTI_RENDER_SHADER:Deactivate()
+    self.DEFAULT_SHADER:Deactivate()
 
-    -- if self._oldCanvas and self._oldCanvas._materialMap and not self._oldCanvas.Shader then
-    --     setCanvas(self._oldCanvas._drawable)
-    --     Canvas.MULTI_RENDER_SHADER:Activate()
-        
-    -- else
-        setCanvas(self._oldCanvas)
-    -- end
+    setCanvas(self._oldCanvas)
     
     _G.CurrentCanvas = self._oldCanvas
     self._oldCanvas = nil
@@ -155,7 +132,7 @@ function Canvas:CopyFrom(other, shader)
     if shader then 
         shader:Activate()
     else
-        MULTI_RENDER_SHADER:Activate()
+        Canvas.DEFAULT_SHADER:Activate()
     end
     
     love.graphics.clear()
@@ -164,7 +141,7 @@ function Canvas:CopyFrom(other, shader)
     if shader then 
         shader:Deactivate()
     else
-        MULTI_RENDER_SHADER:Deactivate()
+        Canvas.DEFAULT_SHADER:Deactivate()
     end
     
     -- Restore the previous canvas

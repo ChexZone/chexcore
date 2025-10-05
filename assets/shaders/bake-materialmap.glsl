@@ -1,11 +1,10 @@
-extern Image normalMap;    // bound even if dummy
-extern Image specularMap;  // bound even if dummy
-extern Image emissiveMap;  // bound even if dummy
+extern Image normalMap;   
+extern Image specularMap;  
+extern Image heightMap; 
 
-// use uniforms to blend in defaults (0 or 1)
 extern float normalWeight;    // 1.0 if real map, 0.0 if dummy
 extern float specularWeight;
-extern float emissiveWeight;
+extern float heightWeight;
 
 vec4 effect(vec4 color, Image tex, vec2 uv, vec2 sc) {
     // --- Normal
@@ -19,8 +18,8 @@ vec4 effect(vec4 color, Image tex, vec2 uv, vec2 sc) {
     spec = mix(0.0, spec, specularWeight);
 
     // --- Emissive
-    float em = Texel(emissiveMap, uv).r;
-    em = mix(0.0, em, emissiveWeight);
+    float em = Texel(heightMap, uv).r;
+    em = mix(0.0, em, heightWeight);
 
-    return vec4(enc, em, spec);
+    return vec4(enc, 1.0, 1.0);
 }

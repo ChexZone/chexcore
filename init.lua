@@ -7,12 +7,10 @@ _G.Chexcore = {
     _lastFrameTime = 0,     -- how long the previous frame actually took
     _graphicsStats = {},        -- the output of love.graphics.getStats()
 
-    _canvasSettings = {
-        format = "normal"
-    },
-
     _frameDelay = 0,        -- (sec) add to this value to wait extra time before the next frame
     _skipFrames = 0,
+
+    DEFAULT_SHADER = nil,
 
     _types = {},            -- stores all type references
     _scenes = {},           -- stores all mounted Scene references
@@ -84,19 +82,6 @@ function Chexcore.Update(dt)
             table.remove(Chexcore._recordingCanvases, i)
         end
     end
-
-    for i, tab in ipairs(Chexcore._recordingCanvasMatMaps) do
-        tab[1] = tab[1] + 1
-
-        print(tab)
-        tab[3]._materialMap:newImageData():encode("png", makeDir(tab[4] .. "/" .. tostring(tab[1]) .. ".png"))
-
-        if tab[1] == tab[2] then
-            table.remove(Chexcore._recordingCanvasMatMaps, i)
-        end
-    end
-
-    
 end
 
 function Chexcore.Draw(params)
@@ -424,6 +409,8 @@ for _, type in ipairs(types) do
     Chexcore:AddType(require(type))
 end
 
+-- post-type loading ops
+Chexcore.DEFAULT_SHADER = Shader.new("chexcore/assets/shaders/default.glsl")
 
 -- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! --
 

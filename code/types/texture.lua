@@ -4,7 +4,6 @@ local Texture = {
 
     -- internal properties
     _drawable = nil,        -- default image
-    _materialMap = nil,
 
     _bakeMatMapShader = Shader.new("chexcore/assets/shaders/bake-materialmap.glsl"),
     _dummyTexture = love.graphics.newCanvas(1,1, Chexcore._canvasSettings),
@@ -18,7 +17,7 @@ local Texture = {
 --setmetatable(Texture, mt)
 local smt = setmetatable
 local newTextureFunc = love.graphics.newTexture or love.graphics.newImage
-function Texture.new(path, normalPath, specularPath, emissivePath)
+function Texture.new(path, normalPath, specularPath, heightPath, emissionPath, occlusionPath, userPath1, userPath2)
     local newTexture
     
     if Texture._cache[path] then
@@ -36,14 +35,16 @@ function Texture.new(path, normalPath, specularPath, emissivePath)
 
         -- Render albedo to layer 0
         love.graphics.setCanvas{{newTexture._drawable, layer = 1}}
+        local shader = love.graphics.getShader()
+        love.graphics.setShader()
         love.graphics.setColor(1,1,1,1)
         love.graphics.draw(baseTexture, 0, 0)
         love.graphics.setCanvas()
         -- Render material map to layer 1 if any material maps exist
-        if normalPath or specularPath or emissivePath then             
+        if normalPath or specularPath or heightPath then             
             love.graphics.setCanvas{{newTexture._drawable, layer = 2}}
 
-            local normalMap, specularMap, emissiveMap
+            local normalMap, specularMap, heightMap
             local bakeMatMapShader, dummyTexture = Texture._bakeMatMapShader, Texture._dummyTexture
             bakeMatMapShader:Activate()
 
@@ -63,18 +64,23 @@ function Texture.new(path, normalPath, specularPath, emissivePath)
                 bakeMatMapShader:Send("specularMap", dummyTexture)
                 bakeMatMapShader:Send("specularWeight", 0)
             end
-            if emissivePath then
-                emissiveMap = newTextureFunc(emissivePath)
-                bakeMatMapShader:Send("emissiveMap", emissiveMap)
-                bakeMatMapShader:Send("emissiveWeight", 1)
+            if heightPath then
+                heightMap = newTextureFunc(heightPath)
+                bakeMatMapShader:Send("heightMap", heightMap)
+                bakeMatMapShader:Send("heightWeight", 1)
             else
-                bakeMatMapShader:Send("emissiveMap", dummyTexture)
-                bakeMatMapShader:Send("emissiveWeight", 0)
+                bakeMatMapShader:Send("heightMap", dummyTexture)
+                bakeMatMapShader:Send("heightWeight", 0)
             end
             love.graphics.draw(baseTexture, 0, 0)
             bakeMatMapShader:Deactivate()
-            -- love.graphics.setCanvas()
+            
+            if normalMap then normalMap:release() end
+            if specularMap then specularMap:release() end
+            if heightMap then heightMap:release() end
         end
+        love.graphics.setCanvas(oc)
+        love.graphics.setShader(shader)
         Texture._cache[path] = newTexture
     end
     
@@ -84,22 +90,7 @@ end
 local draw = cdraw
 
 function Texture:DrawToScreen(...)
-    if self._materialMap then
-        if not CurrentCanvas._materialMap then
-            CurrentCanvas:InitMaterialMap()
-        end
-        MULTI_RENDER_SHADER:Send("albedoTexture", self._drawable)
-        MULTI_RENDER_SHADER:Send("materialTexture", self._materialMap)
-        draw(self._drawable, ...)
-    else
-        -- if CurrentCanvas and MULTI_RENDER_SHADER then
-        --     CurrentCanvas.
-        -- end
-        -- MULTI_RENDER_SHADER:Send("albedoTexture", self._dummyTexture)
-        -- MULTI_RENDER_SHADER:Send("materialTexture", self._drawable)
-        draw(self._drawable, ...)
-    end
-    
+    draw(self._drawable, ...)
 end
 
 local V = Vector

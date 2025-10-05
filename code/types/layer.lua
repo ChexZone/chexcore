@@ -351,11 +351,9 @@ function Layer:Draw(tx, ty)
                 end
             end
             self.ShaderCache[shader]:Activate()
-            if shader == "lighting" and self.FinalCanvas._materialMap then
-                
-                self.ShaderCache[shader]:Send("materialMap", self.FinalCanvas._materialMap)
+            if shader == "lighting" then
                 self.ShaderCache[shader]:Send("normalStrength", 1)
-                self.ShaderCache[shader]:Send("specularPower", 128)
+                self.ShaderCache[shader]:Send("specularPower", 64)
                 self.ShaderCache[shader]:Send("viewDirection", {0,0,1})
             end
             self.HelperCanvas:CopyFrom(self.FinalCanvas, self.ShaderCache[shader])
@@ -376,7 +374,7 @@ if #delayedCallsList > 0 then
     
     -- Store and deactivate any active multi-render shader
     local wasMultiRenderActive = false
-    if _G.CurrentCanvas and _G.CurrentCanvas._materialMap and _G.MULTI_RENDER_SHADER then
+    if _G.CurrentCanvas and _G.MULTI_RENDER_SHADER then
         _G.MULTI_RENDER_SHADER:Deactivate()
         wasMultiRenderActive = true
     end

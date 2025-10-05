@@ -182,8 +182,8 @@ local Tilemap = {
 
         [266] = "Glass",
 
-        [23] = "HalfTileTop", [55] = "HalfTileTop", 
-        [142] = "HalfTileTop", [173] = "HalfTileTop", 
+        [23] = "HalfTileTop", [55] = "HalfTileTop",
+        [142] = "HalfTileTop", [173] = "HalfTileTop",
 
         [234] = "MiniTile"
     },
@@ -193,8 +193,8 @@ local Tilemap = {
     _numChunks = V{1, 1},
     _drawChunks = {},
     _recycledChunks = {},   -- evicted outdated chunks to be repurposed
-    _chunkSize = 64, -- measured in tiles, not pixels
-    _chunkCapacity = 50,
+    _chunkSize = 32, -- measured in tiles, not pixels
+    _chunkCapacity = 40,
     _super = "Prop",      -- Supertype
     _cache = setmetatable({}, {__mode = "k"}), -- cache has weak keys
     _global = true

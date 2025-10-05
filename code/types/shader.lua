@@ -46,7 +46,7 @@ function Shader:Activate()
 end
 
 function Shader:Deactivate()
-    setShader(self._oldShader)
+    setShader(self._oldShader or Canvas.DEFAULT_SHADER._realShader)
     self._oldShader = nil
 end
 
