@@ -95,6 +95,10 @@ function Prop:Draw(tx, ty, isForeground)
     local sx = self.Size[1] * (self.DrawScale[1]-1)
     local sy = self.Size[2] * (self.DrawScale[2]-1)
     
+    -- if MULTI_RENDER_SHADER then
+    --     MULTI_RENDER_SHADER:Send("")
+    -- end
+
     self.Texture:DrawToScreen(
         floor(self.Position[1] - tx),
         floor(self.Position[2] - ty),
