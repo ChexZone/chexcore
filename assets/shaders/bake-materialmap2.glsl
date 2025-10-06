@@ -1,3 +1,5 @@
+#pragma language glsl3
+
 extern Image emissionMap;   
 extern Image occlusionMap;  
 extern Image heightMap; 

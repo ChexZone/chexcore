@@ -1,3 +1,5 @@
+#pragma language glsl3
+
 uniform sampler2DArray MainTex;
 
 void effect()
