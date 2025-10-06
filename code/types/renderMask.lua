@@ -38,7 +38,7 @@ function RenderMask.new(...)
 end
 
 function RenderMask:Draw(tx, ty)
-    love.graphics.setBlendMode("alpha")
+    love.graphics.setBlendMode("alpha", "premultiplied")
     -- Prop.Draw(self,tx,ty)
     self.Canvas1:Activate{1}
     -- love.graphics.setBlendMode("replace")

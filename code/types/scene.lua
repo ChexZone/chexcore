@@ -106,7 +106,7 @@ function Scene:CombineLayers()
     self.MasterCanvas:Activate()
     lg.clear()
     lg.setColor(1,1,1,1)
-
+    
     -- collect a list of all Canvases from all Layers
     local masterCanvasSize = self.MasterCanvas:GetSize()
     for layer in self:EachChild() do

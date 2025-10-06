@@ -9,6 +9,6 @@ void effect()
     
     // Output each layer to its corresponding canvas
     love_Canvases[0] = layer0 * VaryingColor;
-    love_Canvases[1] = layer1 * layer0.a * VaryingColor;
-    love_Canvases[2] = layer2 * layer0.a * VaryingColor;
+    love_Canvases[1] = layer1 * layer0.a; // * VaryingColor.a;
+    love_Canvases[2] = layer2 * layer0.a; // * VaryingColor.a;
 }

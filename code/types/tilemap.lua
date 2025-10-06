@@ -463,7 +463,8 @@ function Tilemap:AnimateChunk(layer, x, y, tilesToRedraw)
         currentChunk._tilesUsed = tilesUsed
 
         love.graphics.setColor(1,1,1,1)
-        love.graphics.setBlendMode("replace")
+        local b, a = love.graphics.getBlendMode()
+        love.graphics.setBlendMode("replace", "premultiplied")
         -- render this chunk's allotted tiles
         local yOfs = (y-1) * self._chunkSize + 1
         local xOfs = (x-1) * self._chunkSize + 1
@@ -490,7 +491,7 @@ function Tilemap:AnimateChunk(layer, x, y, tilesToRedraw)
                 end
             end
         end
-        love.graphics.setBlendMode("alpha")
+        love.graphics.setBlendMode(b, a)
         currentChunk:Deactivate()
     end
 end
@@ -506,6 +507,7 @@ function Tilemap:DrawChunk(layer, x, y)
 
         love.graphics.clear()
         love.graphics.setColor(1,1,1,1)
+        love.graphics.setBlendMode("replace", "premultiplied")
         -- render this chunk's allotted tiles
         local yOfs = (y-1) * self._chunkSize + 1
         local xOfs = (x-1) * self._chunkSize + 1
@@ -552,6 +554,7 @@ function Tilemap:GenerateChunk(layerID, col, row)
 
     chunk:Properties{
         AlphaMode = "premultiplied",
+        BlendMode = "alpha",
         Name = "Chunk "..tostring(chunkIndex),
         ChunkIndex = chunkIndex,
         ChunkLayerID = layerID
@@ -629,13 +632,16 @@ local function drawLayer(self, layerID, camTilemapDist, sx, sy, ax, ay, tx, ty)
     local cameraSize = layer.Canvases and (layer.Canvases[1]:GetSize() * layer.TranslationInfluence) / camera.Zoom or V{love.graphics.getDimensions()} * layer.TranslationInfluence / camera.Zoom
 
     love.graphics.setColor(self.Color * (self.LayerColors[layerID] or Constant.COLOR.WHITE))
+    
+    love.graphics.setBlendMode("alpha", "premultiplied")
+    
     local parallaxX = self.LayerParallax[layerID] and self.LayerParallax[layerID][1] or 1
     local parallaxY = self.LayerParallax[layerID] and self.LayerParallax[layerID][2] or 1
 
     local offsetX = self.LayerOffset[layerID] and self.LayerOffset[layerID][1] or 0
     local offsetY = self.LayerOffset[layerID] and self.LayerOffset[layerID][2] or 0
 
-
+    
     -- print(self, layerID)
     local leftChunkBound = 1
     local rightChunkBound = self._numChunks[1]
@@ -692,7 +698,7 @@ local function drawLayer(self, layerID, camTilemapDist, sx, sy, ax, ay, tx, ty)
                     end
                     self:RefreshChunk(currentChunk)
                     
-
+                    
 
                     currentChunk:DrawToScreen(
                         px,

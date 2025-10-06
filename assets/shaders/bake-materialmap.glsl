@@ -1,10 +1,8 @@
 extern Image normalMap;   
 extern Image specularMap;  
-extern Image heightMap; 
 
 extern float normalWeight;    // 1.0 if real map, 0.0 if dummy
 extern float specularWeight;
-extern float heightWeight;
 
 vec4 effect(vec4 color, Image tex, vec2 uv, vec2 sc) {
     // --- Normal
@@ -16,10 +14,6 @@ vec4 effect(vec4 color, Image tex, vec2 uv, vec2 sc) {
     // --- Specular
     float spec = Texel(specularMap, uv).r;
     spec = mix(0.0, spec, specularWeight);
-
-    // --- Emissive
-    float em = Texel(heightMap, uv).r;
-    em = mix(0.0, em, heightWeight);
-
-    return vec4(enc, 1.0, 1.0);
+    
+    return vec4(enc, spec, 1.0);
 }

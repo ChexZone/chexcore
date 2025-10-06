@@ -53,23 +53,27 @@ local draw, setBlendMode, getBlendMode = cdraw, lg.setBlendMode, lg.getBlendMode
 local drawLayer = cdrawlayer
 function Canvas:DrawToScreen(...)
     -- prepare the Canvas's render conditions
-    local mode, alphaMode = getBlendMode()
-    setBlendMode(self.BlendMode == "ignore" and mode or self.BlendMode, self.AlphaMode == "ignore" and alphaMode or self.AlphaMode)
-
+    -- local mode, alphaMode = getBlendMode()
+    -- setBlendMode(self.BlendMode == "ignore" and mode or self.BlendMode, self.AlphaMode == "ignore" and alphaMode or self.AlphaMode)
+    setBlendMode("alpha","premultiplied")
     
 
-    -- render the Canvas    
+    -- render the Canvas
     draw(self._drawable, ...)
     -- love.graphics.setShader()
     -- drawLayer(self., 1, ...)
     -- love.graphics.setShader(Canvas.DEFAULT_SHADER._realShader)
 
-    setBlendMode(mode, alphaMode)
+    -- setBlendMode(mode, alphaMode)
 end
 
 local setCanvas, setShader = lg.setCanvas, lg.setShader
 function Canvas:Activate(layers)
     self._oldCanvas = _G.CurrentCanvas
+    self._oldMode, self._oldAlphaMode = getBlendMode()
+    -- setBlendMode(self.BlendMode == "ignore" and mode or self.BlendMode, self.AlphaMode == "ignore" and alphaMode or self.AlphaMode)
+    setBlendMode("alpha", "alphamultiply")
+
 
     if layers then
         local c = {}
@@ -81,7 +85,7 @@ function Canvas:Activate(layers)
         _G.CurrentCanvas = {{self._drawable, layer=1},{self._drawable, layer=2},{self._drawable, layer=3}}
     end
 
-  
+    
     Canvas.DEFAULT_SHADER:Activate()
     setCanvas(_G.CurrentCanvas)
 
@@ -98,7 +102,7 @@ function Canvas:Deactivate()
     self.DEFAULT_SHADER:Deactivate()
 
     setCanvas(self._oldCanvas)
-    
+    -- setBlendMode(self._oldMode or "alpha", self._oldAlphaMode or "premultiplied")
     _G.CurrentCanvas = self._oldCanvas
     self._oldCanvas = nil
 end
@@ -137,6 +141,7 @@ function Canvas:CopyFrom(other, shader)
     
     love.graphics.clear()
     love.graphics.setColor(1, 1, 1)
+    
     love.graphics.draw(other._drawable, 0, 0)
     if shader then 
         shader:Deactivate()

@@ -353,8 +353,10 @@ function Layer:Draw(tx, ty)
             self.ShaderCache[shader]:Activate()
             if shader == "lighting" then
                 self.ShaderCache[shader]:Send("normalStrength", 1)
-                self.ShaderCache[shader]:Send("specularPower", 64)
-                self.ShaderCache[shader]:Send("viewDirection", {0,0,1})
+                self.ShaderCache[shader]:Send("lightingBands", 3)
+                self.ShaderCache[shader]:Send("ambientWrap", .75)
+                self.ShaderCache[shader]:Send("specularPower", 32)
+                self.ShaderCache[shader]:Send("viewDirection", {0,0,.1})
             end
             self.HelperCanvas:CopyFrom(self.FinalCanvas, self.ShaderCache[shader])
             self.ShaderCache[shader]:Deactivate()

@@ -94,6 +94,7 @@ function Prop:Draw(tx, ty, isForeground)
     lg.setColor(self.Color)
     local sx = self.Size[1] * (self.DrawScale[1]-1)
     local sy = self.Size[2] * (self.DrawScale[2]-1)
+    
     self.Texture:DrawToScreen(
         floor(self.Position[1] - tx),
         floor(self.Position[2] - ty),

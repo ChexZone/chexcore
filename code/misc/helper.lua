@@ -956,6 +956,17 @@ _G.cdrawlayer = function(drawable, layer, x, y, r, sx, sy, ox, oy, kx, ky, ignor
     -- lg.pop()
 end
 
+-- local setBlendMode = love.graphics.setBlendMode
+-- function love.graphics.setBlendMode(m, m2)
+--     setBlendMode(m, m2)
+--     if m2 == "alphamultiply" and math.random(100)==1 then
+--         error()
+--     end
+-- end
+
+-- Add this to track ALL state:
+
+
 _G.cdrawquad = function(drawable, quad, qx, qy, x, y, r, sx, sy, ox, oy, kx, ky, ignoreSnap)
     love_graphics_draw(
         drawable,
