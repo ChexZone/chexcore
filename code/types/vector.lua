@@ -107,7 +107,7 @@ setmetatable(Vector, {
     end
 })
 -- custom indexing to react to X, Y, Z
-local map, rg, rs, OBJ = {X = 1, Y = 2, Z = 3, A = 4, R = 1, G = 2, B = 3}, rawget, rawset, Object
+local map, rg, rs, OBJ = {X = 1, Y = 2, Z = 3, A = 4, R = 1, G = 2, B = 3, W = 4}, rawget, rawset, Object
 local f_map_set = {
     H = function(vec, val)
         local _, s, v = rgb_to_hsv(vec[1], vec[2], vec[3])

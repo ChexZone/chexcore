@@ -99,6 +99,14 @@ function Prop:Draw(tx, ty, isForeground)
     --     MULTI_RENDER_SHADER:Send("")
     -- end
 
+    if self.Rotation ~= 0 and Canvas.DEFAULT_SHADER then
+        Canvas.DEFAULT_SHADER:Send("rotation", (math.deg(self.Rotation) % 360)/360)
+        Canvas._sentRotation = true
+    elseif Canvas._sentRotation then
+        Canvas.DEFAULT_SHADER:Send("rotation", 0)
+        Canvas._sentRotation = false
+    end
+
     self.Texture:DrawToScreen(
         floor(self.Position[1] - tx),
         floor(self.Position[2] - ty),

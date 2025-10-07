@@ -82,7 +82,7 @@ function Text:Draw(tx, ty, isForeground)
 
     lg.setFont(self.Font._realFont)
     lg.setColor(self.TextColor)
-    lg.setBlendMode("alpha","premultiplied")
+    lg.setBlendMode("alpha","alphamultiply")
     local textScale = self.FontSize and self.FontSize / self.Font._fontSize or 1
     local shader = love.graphics.getShader()
     love.graphics.setShader(self.Shader or nil)

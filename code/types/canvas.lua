@@ -55,7 +55,7 @@ function Canvas:DrawToScreen(...)
     -- prepare the Canvas's render conditions
     -- local mode, alphaMode = getBlendMode()
     -- setBlendMode(self.BlendMode == "ignore" and mode or self.BlendMode, self.AlphaMode == "ignore" and alphaMode or self.AlphaMode)
-    setBlendMode("alpha","premultiplied")
+    setBlendMode("alpha","alphamultiply")
     
 
     -- render the Canvas

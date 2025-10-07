@@ -87,7 +87,7 @@ function Scene:Draw(params)
         -- render all layers to the MasterCanvas
         self:CombineLayers()
 
-        -- draw the MasterCanvas
+        -- draw the MasterCanvasa 
     
         local canvasRatio, windowRatio = canvasSize.X / canvasSize.Y, windowSize.X / windowSize.Y
         local scaleByWidth = canvasRatio > windowRatio

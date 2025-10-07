@@ -16,6 +16,13 @@ local Texture = {
     _dummyLightMap = love.graphics.newCanvas(1,1, Chexcore._canvasSettings),
     _dummyRotationMap = love.graphics.newCanvas(1,1, Chexcore._canvasSettings),
 
+    _hasNormalMap = false,
+    _hasSpecularMap = false,
+    _hasHeightMap = false,
+    _hasLightMap = false,
+    _hasShadowMap = false,
+
+
     _cache = setmetatable({}, {__mode = "v"}), -- cache has weak values
     _super = "Object",      -- Supertype
     _global = true
@@ -53,7 +60,7 @@ end)
 --setmetatable(Texture, mt)
 local smt = setmetatable
 local newTextureFunc = love.graphics.newTexture or love.graphics.newImage
-function Texture.new(path, normalPath, specularPath, heightPath, emissionPath, occlusionPath, userPath1, userPath2)
+function Texture.new(path, normalPath, specularPath, heightPath, emissionPath, occlusionPath)
     if type(path)=="table" then
         if Texture._cache[path[1]] or Texture._cache[path.path] then
             return Texture._cache[path[1]] or Texture._cache[path.path]
@@ -104,17 +111,21 @@ function Texture.new(path, normalPath, specularPath, heightPath, emissionPath, o
             normalMap = newTextureFunc(normalPath)
             bakeMatMapShader:Send("normalMap", normalMap)
             bakeMatMapShader:Send("normalWeight", 1)
+            newTexture._hasNormalMap = true
         else
             bakeMatMapShader:Send("normalMap", Texture._dummyNormalMap)
             bakeMatMapShader:Send("normalWeight", 1)
+            newTexture._hasNormalMap = false
         end
         if specularPath then
             specularMap = newTextureFunc(specularPath)
             bakeMatMapShader:Send("specularMap", specularMap)
             bakeMatMapShader:Send("specularWeight", 1)
+            newTexture._hasSpecularMap = true
         else
             bakeMatMapShader:Send("specularMap", Texture._dummySpecularMap)
             bakeMatMapShader:Send("specularWeight", 1)
+            newTexture._hasSpecularMap = false
         end
 
         love.graphics.draw(baseTexture, 0, 0)
@@ -136,9 +147,11 @@ function Texture.new(path, normalPath, specularPath, heightPath, emissionPath, o
             emissionMap = newTextureFunc(emissionPath)
             bakeMatMap2Shader:Send("emissionMap", emissionMap)
             bakeMatMap2Shader:Send("emissionWeight", 1)
+            newTexture._hasLightMap = true
         else
             bakeMatMap2Shader:Send("emissionMap", Texture._dummyLightMap)
             bakeMatMap2Shader:Send("emissionWeight", 1)
+            newTexture._hasLightMap = false
         end
         
         if occlusionPath then
@@ -146,18 +159,22 @@ function Texture.new(path, normalPath, specularPath, heightPath, emissionPath, o
             occlusionMap = newTextureFunc(occlusionPath)
             bakeMatMap2Shader:Send("occlusionMap", occlusionMap)
             bakeMatMap2Shader:Send("occlusionWeight", 1)
+            newTexture._hasShadowMap = true
         else
             bakeMatMap2Shader:Send("occlusionMap", Texture._dummyShadowMap)
             bakeMatMap2Shader:Send("occlusionWeight", 1)
+            newTexture._hasShadowMap = false
         end
 
         if heightPath then
             heightMap = newTextureFunc(heightPath)
             bakeMatMap2Shader:Send("heightMap", heightMap)
             bakeMatMap2Shader:Send("heightWeight", 1)
+            newTexture._hasHeightMap = false
         else
             bakeMatMap2Shader:Send("heightMap", Texture._dummyHeightMap)
             bakeMatMap2Shader:Send("heightWeight", 1)
+            newTexture._hasHeightMap = true
         end
       
         love.graphics.draw(baseTexture, 0, 0)
@@ -165,8 +182,6 @@ function Texture.new(path, normalPath, specularPath, heightPath, emissionPath, o
         
         if emissionMap then emissionMap:release() end
         if occlusionMap then occlusionMap:release() end
-        if userMap1 then userMap1:release() end
-        if userMap2 then userMap2:release() end
 
         love.graphics.setCanvas(oc)
         love.graphics.setShader(shader)
