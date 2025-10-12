@@ -65,17 +65,13 @@ function Texture.new(path, normalPath, specularPath, heightPath, emissionPath, o
         if Texture._cache[path[1]] or Texture._cache[path.path] then
             return Texture._cache[path[1]] or Texture._cache[path.path]
         end
-        print("YES", _tostring(path), path[1], path.occlusionPath)
         normalPath = path.normalPath
         specularPath = path.specularPath
         heightPath = path.heightPath
         emissionPath = path.emissionPath
         occlusionPath = path.occlusionPath
-        userPath1 = path.userPath1
-        userPath2 = path.userPath2
         path = path.path or path[1]
     end
-    print("YES 2", path)
     local newTexture
     
     if Texture._cache[path] then
@@ -84,7 +80,6 @@ function Texture.new(path, normalPath, specularPath, heightPath, emissionPath, o
         
     newTexture = smt({}, Texture)
     if path then
-        print("YES 3", occlusionPath)
         local baseTexture = newTextureFunc(path)
         local width, height = baseTexture:getDimensions()
 

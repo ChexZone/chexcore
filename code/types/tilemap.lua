@@ -462,7 +462,7 @@ function Tilemap:AnimateChunk(layer, x, y, tilesToRedraw)
         local tilesUsed = currentChunk._tilesUsed or {}
         currentChunk._tilesUsed = tilesUsed
 
-        love.graphics.setColor(1,1,1,1)
+        love.graphics.setColor(self.Color * (self.LayerColors[layerID] or Constant.COLOR.WHITE))
         local b, a = love.graphics.getBlendMode()
         love.graphics.setBlendMode("replace", "alphamultiply")
         -- render this chunk's allotted tiles
@@ -506,7 +506,7 @@ function Tilemap:DrawChunk(layer, x, y)
         currentChunk._tilesUsed = tilesUsed
 
         love.graphics.clear()
-        love.graphics.setColor(1,1,1,1)
+        love.graphics.setColor(self.Color * (self.LayerColors[layerID] or Constant.COLOR.WHITE))
         love.graphics.setBlendMode("replace", "alphamultiply")
         -- render this chunk's allotted tiles
         local yOfs = (y-1) * self._chunkSize + 1
@@ -539,7 +539,9 @@ function Tilemap:DrawChunk(layer, x, y)
 end
 
 function Tilemap:GenerateChunk(layerID, col, row)
+    
     local c1, c2 = love.graphics.getCanvas()
+    
     local chunkIndex = col + (row-1)*self._numChunks[1]
     local chunk
     
@@ -562,7 +564,7 @@ function Tilemap:GenerateChunk(layerID, col, row)
     chunk._tilesUsed = {}
     self._drawChunks[layerID][chunkIndex] = chunk
     
-    self:DrawChunk(layerID, col, row)
+    -- self:DrawChunk(layerID, col, row)
     
     self:RefreshChunk(chunk)
 
@@ -598,7 +600,7 @@ function Tilemap:GenerateChunks()
             end
         end
     end
-
+    
     self:DrawChunks()
 end
 
@@ -630,8 +632,8 @@ local function drawLayer(self, layerID, camTilemapDist, sx, sy, ax, ay, tx, ty)
     local camera = layer:GetParent().Camera
     local cameraPos = camera.Position
     local cameraSize = layer.Canvases and (layer.Canvases[1]:GetSize() * layer.TranslationInfluence) / camera.Zoom or V{love.graphics.getDimensions()} * layer.TranslationInfluence / camera.Zoom
-
-    love.graphics.setColor(self.Color * (self.LayerColors[layerID] or Constant.COLOR.WHITE))
+    -- print("layer", layerID, self.Color * (self.LayerColors[layerID] or Constant.COLOR.WHITE))
+    love.graphics.setColor(self.Color)
     
     love.graphics.setBlendMode("alpha", "premultiplied")
     
