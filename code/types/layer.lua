@@ -352,6 +352,7 @@ function Layer:Draw(tx, ty)
             end
             self.ShaderCache[shader]:Activate()
             if shader == "lighting" then
+                
                 self.ShaderCache[shader]:Send("normalStrength", 1)
                 self.ShaderCache[shader]:Send("lightingBands", 3)
                 self.ShaderCache[shader]:Send("ambientWrap", .75)

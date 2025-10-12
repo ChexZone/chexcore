@@ -464,7 +464,7 @@ function Tilemap:AnimateChunk(layer, x, y, tilesToRedraw)
 
         love.graphics.setColor(1,1,1,1)
         local b, a = love.graphics.getBlendMode()
-        love.graphics.setBlendMode("replace", "premultiplied")
+        love.graphics.setBlendMode("replace", "alphamultiply")
         -- render this chunk's allotted tiles
         local yOfs = (y-1) * self._chunkSize + 1
         local xOfs = (x-1) * self._chunkSize + 1
@@ -507,7 +507,7 @@ function Tilemap:DrawChunk(layer, x, y)
 
         love.graphics.clear()
         love.graphics.setColor(1,1,1,1)
-        love.graphics.setBlendMode("replace", "premultiplied")
+        love.graphics.setBlendMode("replace", "alphamultiply")
         -- render this chunk's allotted tiles
         local yOfs = (y-1) * self._chunkSize + 1
         local xOfs = (x-1) * self._chunkSize + 1
@@ -553,7 +553,7 @@ function Tilemap:GenerateChunk(layerID, col, row)
     end
 
     chunk:Properties{
-        AlphaMode = "premultiplied",
+        AlphaMode = "alphamultiply",
         BlendMode = "alpha",
         Name = "Chunk "..tostring(chunkIndex),
         ChunkIndex = chunkIndex,
@@ -593,7 +593,7 @@ function Tilemap:GenerateChunks()
                 local chunk = Canvas.new(
                     self._chunkSize * self.TileSize,
                     self._chunkSize * self.TileSize
-                ):Properties{AlphaMode = "premultiplied"}
+                ):Properties{AlphaMode = "alphamultiply"}
                 self._drawChunks[layerID][#self._drawChunks[layerID]+1] = chunk
             end
         end

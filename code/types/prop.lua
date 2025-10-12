@@ -99,7 +99,7 @@ function Prop:Draw(tx, ty, isForeground)
     --     MULTI_RENDER_SHADER:Send("")
     -- end
 
-    if self.Rotation ~= 0 and Canvas.DEFAULT_SHADER then
+    if self.Texture._hasNormalMap and self.Rotation ~= 0 and Canvas.DEFAULT_SHADER then
         Canvas.DEFAULT_SHADER:Send("rotation", (math.deg(self.Rotation) % 360)/360)
         Canvas._sentRotation = true
     elseif Canvas._sentRotation then
