@@ -351,6 +351,7 @@ function Layer:Draw(tx, ty)
                 end
             end
             self.ShaderCache[shader]:Activate()
+            
             if shader == "lighting" then
                 
                 self.ShaderCache[shader]:Send("normalStrength", 1)

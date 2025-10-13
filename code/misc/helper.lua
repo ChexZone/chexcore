@@ -1012,6 +1012,25 @@ function _G.cdrawline(x1, y1, x2, y2, length, offset)
     drawPoints(points)
   end
 
+function _G.cdrawline2(x1, y1, x2, y2, dashLength, gapLength, offset)
+    dashLength = dashLength or 4
+    gapLength = gapLength or 4
+    offset = offset or 0
+    local points = {}
+
+    local dx, dy = x2 - x1, y2 - y1
+    local len = max(abs(dx), abs(dy))
+    local cycleLength = dashLength + gapLength
+
+    for i = 0, len do -- including first and last points
+        if (offset - i) % cycleLength < dashLength then
+            points[#points+1] = x1 + dx * i/len
+            points[#points+1] = y1 + dy * i/len
+        end
+    end
+    drawPoints(points)
+end
+
 local love_graphics_circle = love.graphics.circle
 function _G.cdrawlinethick(x1, y1, x2, y2, thickness, length, offset)
     length = length or -1
@@ -1156,7 +1175,7 @@ end
 curves.outElastic = function(t)
     if t == 0 then return 0 end
     if t == 1 then return 1 end
-    return 2^(-10 * t) * math.sin((t * 10 - 0.75) * (2 * math.pi / 3)) + 1
+    return 2^(-9 * t) * math.sin((t * 9 - 0.75) * (2 * math.pi / 3.5)) + 1
 end
 
 curves.inOutElastic = function(t)

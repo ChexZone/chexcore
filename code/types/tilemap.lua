@@ -604,6 +604,11 @@ function Tilemap:GenerateChunks()
     self:DrawChunks()
 end
 
+function Tilemap:GetTileFromTileNo(layer, tileNo)
+    layer, tileNo = tileNo and layer or 1, tileNo or layer
+    return self:GetMap(layer)[tileNo]
+end
+
 function Tilemap:GetTile(layer, x, y)
     x, y, layer = y and x or layer, y or x, y and layer or 1
     
