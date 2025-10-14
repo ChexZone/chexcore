@@ -166,6 +166,24 @@ function Layer:SetPartitions(child)
     -- print()
 end
 
+function Layer:RemoveFromPartitions(child)
+    -- erase object from all its partitions
+    
+    if child._partitionTLX and child._partitionTLY and child._partitionBRX and child._partitionBRY then
+        
+        for x = child._partitionTLX or 0, child._partitionBRX or 0 do
+            for y = child._partitionTLY or 0, child._partitionBRY or 0 do
+                self._collisionPartitions[key(x, y)][child] = nil
+            end
+        end
+        -- clear the partition tracking data
+        child._partitionTLX = nil
+        child._partitionTLY = nil
+        child._partitionBRX = nil
+        child._partitionBRY = nil
+    end
+end
+
 
 -- NOTE:
 -- Because right now, PARTITIONS ARE HASH-BASED, not array-based, it's possible for this function to return objects in an arbitrary order.
@@ -351,7 +369,7 @@ function Layer:Draw(tx, ty)
                 end
             end
             self.ShaderCache[shader]:Activate()
-            
+
             if shader == "lighting" then
                 
                 self.ShaderCache[shader]:Send("normalStrength", 1)
@@ -480,5 +498,10 @@ function Layer:PositionOnMasterCanvas(layerPos, canvasID)
     return masterPos
 end
 
+function Layer:Disown(child)
+    
+    self:RemoveFromPartitions(child)
+    return Object.Disown(self,child)
+end
 
 return Layer

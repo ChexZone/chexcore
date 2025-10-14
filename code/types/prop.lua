@@ -484,4 +484,13 @@ function Prop:GetSurfaceInfo()
     }
 end
 
+function Prop:Disown(child)
+    
+    local layer = self:GetLayer()
+    if layer then
+        layer:RemoveFromPartitions(child)
+    end
+    return Object.Disown(self,child)
+end
+
 return Prop
