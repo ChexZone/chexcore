@@ -15,6 +15,7 @@ _G.Chexcore = {
     _types = {},            -- stores all type references
     _scenes = {},           -- stores all mounted Scene references
     _globalUpdates = {},    -- for any types that want independent update control
+    _frameEndGlobalUpdates = {},
     _priorityGlobalUpdates = {},    -- for any types that want to update before globalUpdates do
     _globalDraws = {},      -- for any types that want independent draw control
     _recordingCanvases = {},    -- a container for any Canvas recorded with Canvas:Record(); ordered list items in format {progress, numFrames, canvas, outputPath}
@@ -160,6 +161,9 @@ function Chexcore:AddType(type)
     end
     if type._globalDraw then
         Chexcore._globalDraws[#Chexcore._globalDraws+1] = type._globalDraw
+    end
+    if type._frameEndGlobalUpdate then
+        Chexcore._frameEndGlobalUpdates[#Chexcore._frameEndGlobalUpdates+1] = type._frameEndGlobalUpdate
     end
 
     -- apply the supertype, if there is one
@@ -344,6 +348,11 @@ function love.run()
 
             love.graphics.present()
         -- end
+
+
+        for _, func in ipairs(Chexcore._frameEndGlobalUpdates) do
+            func(dt)
+        end
 
         -- new target based on updated TRUE_FPS
         frame_time = 1 / (_G.TRUE_FPS or frameLimit)

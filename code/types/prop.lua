@@ -53,7 +53,7 @@ function Prop.new(properties)
     newProp.AnchorPoint = rg(newProp, "AnchorPoint") or V{ Prop.AnchorPoint.X, Prop.AnchorPoint.Y }
     newProp.DrawScale = rg(newProp, "DrawScale") or V{ Prop.DrawScale.X, Prop.DrawScale.Y }
     newProp._propID = _G.CURRENT_PROP_ID; _G.CURRENT_PROP_ID = _G.CURRENT_PROP_ID + 1
-
+    print(newProp, newProp._propID)
     return newProp
 end
 

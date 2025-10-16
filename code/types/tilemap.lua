@@ -966,7 +966,7 @@ function Tilemap:GetEdge(edge, x, y, layerID)
     local realTileX = tilemapSize[1]/self.Size[1]
     local realTileY = tilemapSize[2]/self.Size[2]
 
-    local tileGID = self:GetTile(layerID, x, y)
+    local tileGID = self:GetTile(layerID, x, y) or 0
 
     local tileID, hFlip, vFlip, dFlip = decodeGID(tileGID)
     local tileSurface = self.SurfaceInfo[self.TileSurfaceMapping[tileID]] or self._surfaceInfo

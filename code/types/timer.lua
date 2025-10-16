@@ -3,6 +3,7 @@ local Timer = { -- mini timer system!
     Name = "Timer",
     -- internal properties
     _timers = {},
+    _frameEndFuncs = {},
     _frameDelta = 1/Chexcore.FrameLimit,
 
     _super = "Object",      -- Supertype
@@ -36,8 +37,22 @@ Timer._globalUpdate = function(dt)
     end
 end
 
+Timer._frameEndGlobalUpdate = function ()
+    if #Timer._frameEndFuncs > 0 then
+        for _, func in ipairs(Timer._frameEndFuncs) do
+            print(func)
+            func[1](unpack(func[2]))
+        end
+        Timer._frameEndFuncs = {}
+    end
+end
+
 function Timer.Schedule(duration, funcOrObj, ...)
     Timer._timers[{funcOrObj, {...}}] = Chexcore._clock + duration
+end
+
+function Timer.ScheduleToEndOfFrame(funcOrObj, ...)
+    Timer._frameEndFuncs[#Timer._frameEndFuncs+1] = {funcOrObj, {...}}
 end
 
 function Timer.ScheduleFrames(frames, ...)
