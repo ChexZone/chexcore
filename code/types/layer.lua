@@ -5,6 +5,7 @@ local Layer = {
     Canvases = nil,         -- table of renderable canvases, created in constructor
     TranslationInfluence = 1,
     ZoomInfluence = 1,
+    BackgroundColor = V{0,0,0,0},
     AutoClearCanvas = true,
     Static = false,         -- whether the top left corner of the canvas sits at V{0, 0} or not
 
@@ -254,7 +255,7 @@ function Layer:Draw(tx, ty)
     if self.Canvases then
         self.Canvases[1]:Activate()
         if self.AutoClearCanvas then
-            lg.clear()
+            lg.clear(self.BackgroundColor)
         end
     end
     

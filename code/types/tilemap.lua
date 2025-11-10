@@ -462,7 +462,7 @@ function Tilemap:AnimateChunk(layer, x, y, tilesToRedraw)
         local tilesUsed = currentChunk._tilesUsed or {}
         currentChunk._tilesUsed = tilesUsed
 
-        love.graphics.setColor(self.Color * (self.LayerColors[layerID] or Constant.COLOR.WHITE))
+        love.graphics.setColor(self.Color)
         local b, a = love.graphics.getBlendMode()
         love.graphics.setBlendMode("replace", "alphamultiply")
         -- render this chunk's allotted tiles
@@ -506,7 +506,7 @@ function Tilemap:DrawChunk(layer, x, y)
         currentChunk._tilesUsed = tilesUsed
 
         love.graphics.clear()
-        love.graphics.setColor(self.Color * (self.LayerColors[layerID] or Constant.COLOR.WHITE))
+        love.graphics.setColor(self.Color)
         love.graphics.setBlendMode("replace", "alphamultiply")
         -- render this chunk's allotted tiles
         local yOfs = (y-1) * self._chunkSize + 1
@@ -547,6 +547,10 @@ function Tilemap:GenerateChunk(layerID, col, row)
     
     if #self._recycledChunks > 0 or false then -- recycle an expired chunk
         chunk = table.remove(self._recycledChunks, #self._recycledChunks)
+        -- Clear the recycled chunk to remove old LayerColor data
+        chunk:Activate()
+        love.graphics.clear()
+        chunk:Deactivate()
     else
         chunk = Canvas.new(
             self._chunkSize * self.TileSize,
@@ -638,7 +642,7 @@ local function drawLayer(self, layerID, camTilemapDist, sx, sy, ax, ay, tx, ty)
     local cameraPos = camera.Position
     local cameraSize = layer.Canvases and (layer.Canvases[1]:GetSize() * layer.TranslationInfluence) / camera.Zoom or V{love.graphics.getDimensions()} * layer.TranslationInfluence / camera.Zoom
     -- print("layer", layerID, self.Color * (self.LayerColors[layerID] or Constant.COLOR.WHITE))
-    love.graphics.setColor(self.Color)
+    -- Color will be set right before each DrawToScreen call
     
     love.graphics.setBlendMode("alpha", "premultiplied")
     
@@ -705,7 +709,8 @@ local function drawLayer(self, layerID, camTilemapDist, sx, sy, ax, ay, tx, ty)
                     end
                     self:RefreshChunk(currentChunk)
                     
-                    
+                    -- Set color right before drawing to ensure LayerColor is applied
+                    love.graphics.setColor(self.Color * (self.LayerColors[layerID] or Constant.COLOR.WHITE))
 
                     currentChunk:DrawToScreen(
                         px,
