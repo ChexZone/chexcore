@@ -1,6 +1,3 @@
-#pragma language glsl3
-
-
 extern Image normalMap;   
 extern Image specularMap;  
 
